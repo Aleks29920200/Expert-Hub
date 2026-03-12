@@ -5,7 +5,7 @@
 ![Angular](https://img.shields.io/badge/Angular-Frontend-red)
 ![Status](https://img.shields.io/badge/Status-In_Development-blue)
 
-**SkillSh** is a purpose-driven, full-stack platform designed to accelerate professional growth. It bridges the gap between aspiring professionals and seasoned industry experts, providing a dedicated space for paid mentorship, secure networking, and authentic skill development.
+**Expert Hub** is a purpose-driven, full-stack platform designed to accelerate professional growth. It bridges the gap between aspiring professionals and seasoned industry experts, providing a dedicated space for paid mentorship, secure networking, and authentic skill development.
 
 ## 📖 Table of Contents
 1. [Project Overview](#project-overview)
@@ -19,7 +19,7 @@
 ---
 
 ## 🔎 Project Overview
-The core mission of **SkillSh** is to empower individuals to "level up" in their respective fields. Users can utilize advanced search filters to discover verified experts, securely pay for mentorship sessions, and unlock dedicated chat channels to gain real-world experience. To maintain a transparent and trustworthy community, the platform enforces a strict feedback loop where reviews can only be left after a verified interaction.
+The core mission of **Expert Hub** is to empower individuals to "level up" in their respective fields. Users can utilize advanced search filters to discover verified experts, securely pay for mentorship sessions, and unlock dedicated chat channels to gain real-world experience. To maintain a transparent and trustworthy community, the platform enforces a strict feedback loop where reviews can only be left after a verified interaction.
 
 The application is powered by a robust **Spring Boot** backend that ensures secure communication, payment status validation, and complex data handling, while the **Angular** frontend delivers a highly responsive SPA experience.
 
