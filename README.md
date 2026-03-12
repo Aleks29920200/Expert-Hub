@@ -66,17 +66,6 @@ The application follows a standard RESTful client-server architecture. The Angul
 
 ---
 
-## 🧠 Challenges & Solutions
-
-### Resolving API Infinite Recursion
-**Challenge:** Mapping bidirectional database relationships (e.g., a `User` entity containing a list of `Review` entities authored by other `User` entities) caused Jackson serialization to enter an infinite loop, resulting in `StackOverflowError` and network crashes (`ERR_INCOMPLETE_CHUNKED_ENCODING`).
-
-**Solution:** 1. Completely decoupled database entities from API responses by implementing the **DTO (Data Transfer Object)** design pattern (`UserView`, `ReviewDTO`).
-2. Utilized `ModelMapper` alongside targeted manual mapping streams to selectively extract necessary fields (like the expert's username or review content).
-3. This approach eliminated cyclic dependencies, secured sensitive data, and drastically reduced JSON payload size, ensuring fast loading times for user profiles.
-
----
-
 ## ⚙️ Installation & Setup
 
 ### Prerequisites
