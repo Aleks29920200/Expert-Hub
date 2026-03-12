@@ -1,4 +1,4 @@
-# 🚀 SkillSh (Professional Mentorship & Expert Hub)
+# 🚀 Expert Hub (Professional Mentorship & Expert Hub)
 
 ![Java](https://img.shields.io/badge/Java-17+-orange)
 ![Spring Boot](https://img.shields.io/badge/Spring_Boot-3.x-brightgreen)
