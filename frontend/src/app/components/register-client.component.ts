@@ -74,7 +74,8 @@ export class RegisterClientComponent {
       });
 
       // ✅ FIX: Changed 'photoUrl' to 'img' to match backend expectation
-      formData.append('img', this.selectedFile);
+      // Трябва да е 'photoUrl', за да съвпадне с Java класа RegisterAsClientDto!
+      formData.append('photoUrl', this.selectedFile);
 
       this.authService.registerClient(formData).subscribe({
         next: () => {

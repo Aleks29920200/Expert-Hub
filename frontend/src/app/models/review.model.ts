@@ -10,4 +10,5 @@ export interface Review {
   rating: number;
   dateOfReview: string; // LocalDate -> ISO String
   comments: Comment[];
+  replies: any[];
 }

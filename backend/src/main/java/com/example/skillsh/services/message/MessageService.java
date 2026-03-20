@@ -4,6 +4,7 @@ import com.example.skillsh.domain.entity.Message;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 @Service
@@ -19,6 +20,9 @@ public interface MessageService{
     Message editMessage(Long id, String newContent);
 
     Message deleteMessageById(Long id);
+
+    List<Map<String, String>> findRecentContactsForUser(String username);
+
     List<Message> findBySenderAndReceiverOrReceiverAndSender(
             String sender1, String receiver1,
             String receiver2, String sender2

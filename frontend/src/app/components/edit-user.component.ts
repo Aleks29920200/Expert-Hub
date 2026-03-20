@@ -77,20 +77,19 @@ export class EditUserComponent implements OnInit {
 
   onSubmit() {
     if (this.editForm.valid && this.userId) {
-      // Тук изпращаме само JSON данните, както е в UserController.java (updateUserAdmin)
-      const updateData = {
-        ...this.editForm.value,
-        id: this.userId
-        // Забележка: Java контролерът updateAdmin приема AddUserDTO като JSON.
-        // Снимката обикновено се качва отделно или трябва да промениш бекенда на FormData.
-      };
+      const formData = new FormData();
+      // Добавяме текстовите полета
+      formData.append('email', this.editForm.get('email')?.value);
+      formData.append('id', this.userId.toString());
 
-      this.userService.updateUser(this.userId, updateData).subscribe({
-        next: () => {
-          alert('User updated successfully');
-          this.router.navigate(['/admin/users']);
-        },
-        error: (err) => alert('Error updating user')
+      // Ако е избрана нова снимка, я добавяме (В Java полето е photoUrl)
+      if (this.selectedFile) {
+        formData.append('photoUrl', this.selectedFile);
+      }
+
+      this.userService.updateUser(this.userId, formData).subscribe({
+        next: () => alert('User updated successfully'),
+        error: (err) => console.error(err)
       });
     }
   }

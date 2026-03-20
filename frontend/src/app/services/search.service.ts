@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import {HttpClient, HttpParams} from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { UserDTO } from '../models/dtos.model'; // Ensure this path is correct
 
@@ -13,15 +13,15 @@ export class SearchService {
   constructor(private http: HttpClient) {}
 
 
-  searchByCategory(category: string): Observable<UserDTO[]> {
-    // New Syntax: Slash instead of Question Mark
-    return this.http.get<UserDTO[]>(`${this.baseUrl}/category/${category}`);
-  }
 
 
   searchByKeyword(query: string): Observable<UserDTO[]> {
-    // New Syntax: POST request with a JSON body
-    const body = { info: query };
-    return this.http.post<UserDTO[]>(`${this.baseUrl}`, body);
+    // Създава заявка от типа: GET http://localhost:8080/api/search?query=Думата
+    let params = new HttpParams().set('query', query);
+    return this.http.get<UserDTO[]>(this.baseUrl, { params });
   }
+  searchByCategory(category: string): Observable<UserDTO[]> {
+    return this.http.get<UserDTO[]>(`${this.baseUrl}/category/${category}`);
+  }
+
 }

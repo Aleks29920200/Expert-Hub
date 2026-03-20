@@ -24,15 +24,30 @@ export class PaymentComponent {
 
   // Option 1: Hosted Checkout (Redirects user to Stripe)
   payWithHostedCheckout() {
-    this.paymentService.createHostedCheckoutSession(this.offerId).subscribe({
-      next: async (response: any) => {
-        // Backend returns a JSON object with the session URL or ID
-        // Assuming backend returns: { url: "https://checkout.stripe.com/..." }
-        if (response.url) {
+    // 1. Взимаме ID-то на логнатия потребител (както направихме в Home)
+    let myUserId = 1; // Хардкоднато за тест, ако няма логнат
+    const currentUserStr = localStorage.getItem('currentUser');
+    if (currentUserStr) {
+      try {
+        const currentUserObj = JSON.parse(currentUserStr);
+        if (currentUserObj && currentUserObj.id) {
+          myUserId = currentUserObj.id;
+        }
+      } catch (e) {
+        console.warn('Не можах да прочета логнатия потребител', e);
+      }
+    }
+
+    // 2. Подаваме И ДВЕТЕ променливи на сървиса (първо userId, после offerId)
+    this.paymentService.createHostedCheckoutSession(myUserId, this.offerId).subscribe({
+      next: (response: any) => {
+        if (response && response.url) {
           window.location.href = response.url;
         }
       },
-      error: (err) => console.error('Payment initialization failed', err)
+      error: (err) => {
+        console.error('Payment error', err);
+      }
     });
   }
 

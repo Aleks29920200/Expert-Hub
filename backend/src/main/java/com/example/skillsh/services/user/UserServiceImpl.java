@@ -1,13 +1,13 @@
 package com.example.skillsh.services.user;
 
 import com.example.skillsh.domain.dto.file.FileUploadModel;
-import com.example.skillsh.domain.dto.user.AddUserDTO;
-import com.example.skillsh.domain.dto.user.RegisterAsClientDto;
-import com.example.skillsh.domain.dto.user.RegisterAsExpertDto;
+import com.example.skillsh.domain.dto.user.*;
 import com.example.skillsh.domain.entity.*;
+import com.example.skillsh.domain.entity.enums.OrderStatus;
 import com.example.skillsh.domain.entity.enums.Status;
 import com.example.skillsh.domain.view.UserView;
 import com.example.skillsh.repository.RoleRepo;
+import com.example.skillsh.repository.ServiceOrderRepository;
 import com.example.skillsh.repository.SkillRepo;
 import com.example.skillsh.repository.UserRepo;
 import com.example.skillsh.services.comment.CommentService;
@@ -19,6 +19,8 @@ import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.web.servlet.DispatcherServletRegistrationBean;
 import org.springframework.boot.web.servlet.DelegatingFilterProxyRegistrationBean;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.stereotype.Service;
@@ -40,9 +42,10 @@ public class UserServiceImpl implements UserService {
     private FileService service;
     private ReviewService reviewService;
     private CommentService commentService;
+    private final ServiceOrderRepository orderRepository;
     List<Skill> skillList=new ArrayList<>();
     @Autowired
-    public UserServiceImpl(UserRepo userRepo, BCryptPasswordEncoder passwordEncoder, RoleRepo roleRepo, SkillRepo skillRepo, DispatcherServletRegistrationBean dispatcherServletRegistrationBean, FileService service, DelegatingFilterProxyRegistrationBean securityFilterChainRegistration, FileService fileService, ReviewService reviewService, CommentService commentService) {
+    public UserServiceImpl(UserRepo userRepo, BCryptPasswordEncoder passwordEncoder, RoleRepo roleRepo, SkillRepo skillRepo, DispatcherServletRegistrationBean dispatcherServletRegistrationBean, FileService service, DelegatingFilterProxyRegistrationBean securityFilterChainRegistration, FileService fileService, ReviewService reviewService, CommentService commentService, ServiceOrderRepository orderRepository) {
         this.userRepo = userRepo;
         this.passwordEncoder=passwordEncoder;
         this.roleRepo = roleRepo;
@@ -51,6 +54,7 @@ public class UserServiceImpl implements UserService {
         this.fileService = fileService;
         this.reviewService = reviewService;
         this.commentService = commentService;
+        this.orderRepository = orderRepository;
     }
 
     @Override
@@ -129,9 +133,39 @@ public class UserServiceImpl implements UserService {
         );
     }
     public List<UserView> searchUsers(String keyword) {
-        return userRepo.findByFirstNameContainingIgnoreCaseOrLastNameContainingIgnoreCaseOrUsernameContainingIgnoreCase(
-                keyword, keyword, keyword
-        ).stream().map(e -> mapper.map(e,UserView.class)).toList();
+        // 1. Взимаме списъка с намерени експерти (както си го правил досега)
+        List<User> experts = userRepo.searchExpertsByKeyword(keyword);
+        if (keyword == null || keyword.trim().isEmpty()) {
+            experts = userRepo.findAll(); // или userRepo.findAllExperts(), зависи как се казва методът ти
+        }
+        // АКО ИМА ВЪВЕДЕНА ДУМА -> Търсим по нея
+        else {
+            experts = userRepo.searchExpertsByKeyword(keyword);
+        }
+        // 2. Взимаме кой е текущо логнатият потребител
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        String currentUsername = null;
+        if (auth != null && auth.isAuthenticated() && !auth.getPrincipal().equals("anonymousUser")) {
+            currentUsername = auth.getName(); // Връща username-а на логнатия
+        }
+
+        final String finalCurrentUsername = currentUsername;
+
+        // 3. Мапваме Entity към DTO и проверяваме за плащане
+        return experts.stream().map(expert -> {
+            UserView view = mapper.map(expert, UserView.class);
+
+            // Ако потребителят е логнат, проверяваме дали е платил на този експерт
+            if (finalCurrentUsername != null) {
+                boolean paid = orderRepository.existsByBuyer_UsernameAndOffer_Seller_IdAndStatus(finalCurrentUsername, expert.getId(), OrderStatus.PAID.toString());
+                view.setHasPaid(paid);
+            } else {
+                // Ако е гост (нелогнат), няма как да е платил
+                view.setHasPaid(false);
+            }
+
+            return view;
+        }).collect(Collectors.toList());
     }
 
     @Override
@@ -153,6 +187,25 @@ public class UserServiceImpl implements UserService {
     public List<User> getAll() {
         return userRepo.findAllByActivity(Status.ONLINE);
     }
+
+
+    @Override
+    @Transactional
+    public UserProfileDTO getUserByUsername(String username) {
+        User user = userRepo.findUserByUsername(username)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        UserProfileDTO dto = mapper.map(user, UserProfileDTO.class);
+
+        // Manually set the photo if the auto-mapper failed
+        if (user.getPhotoUrl() != null) {
+            dto.setPhotoUrl(Arrays.toString(user.getPhotoUrl().getFileData())); // Use the actual base64 field
+        }
+
+        return dto;
+    }
+
+
     @Override
     public Optional<User> findUserByUsername(String username) {
         return this.userRepo.findUserByUsername(username);
@@ -167,8 +220,8 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public List<User> users(){
-        return this.userRepo.findAll();
+    public List<UserView> users(){
+        return this.userRepo.findAll().stream().map(e->mapper.map(e,UserView.class)).toList();
     }
 
     @Override
@@ -177,8 +230,9 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public List<User> findAllBySkills(List<Long> skillids) {
-        return this.userRepo.findAllBySkills_IdIn(skillids);
+    public List<UserView> findAllBySkills(List<Long> skillids) {
+        return this.userRepo.findAllBySkills_IdIn(skillids).stream().
+                map(e->mapper.map(e,UserView.class)).toList();
     }
 
 
@@ -227,7 +281,58 @@ public class UserServiceImpl implements UserService {
     public void addUser(@Valid AddUserDTO addUserDto) {
         this.registerUserAsExpert(mapper.map(addUserDto, RegisterAsExpertDto.class));
     }
+    // 1. READ - Вземане на всички потребители
+    public List<UserDTO> findAllUsers() {
+        return userRepo.findAll().stream()
+                .map(this::mapToDTO)
+                .collect(Collectors.toList());
+    }
 
+    // 2. CREATE - Записване на нов потребител
+    public UserDTO saveUser(UserDTO userDTO) {
+        User user = new User();
+        user.setUsername(userDTO.getUsername());
+        user.setEmail(userDTO.getEmail());
+
+        // ВАЖНО: Криптираме паролата (ако е нов потребител, сложи дефолтна или от DTO)
+        user.setPassword(passwordEncoder.encode("123456"));
+
+        // Задаване на роля по подразбиране (напр. ROLE_USER)
+        user.setRole((Set<Role>) roleRepo.getRoleByName("USER"));
+
+        User savedUser = userRepo.save(user);
+        return mapToDTO(savedUser);
+    }
+
+    // 3. UPDATE - Редактиране на съществуващ потребител
+    @Transactional
+    public UserDTO updateUser2(Long id, UserDTO userDTO) {
+        User user = userRepo.findById(id)
+                .orElseThrow(() -> new RuntimeException("Потребителят не е намерен"));
+
+        user.setUsername(userDTO.getUsername());
+        user.setEmail(userDTO.getEmail());
+
+        // Можеш да добавиш логика за смяна на роля тук
+        // if (userDTO.getRole() != null) { ... }
+
+        User updatedUser = userRepo.save(user);
+        return mapToDTO(updatedUser);
+    }
+
+    // 4. DELETE - Изтриване
+
+
+    // Помощен метод за превръщане на Entity в DTO
+    private UserDTO mapToDTO(User user) {
+        UserDTO dto = new UserDTO();
+        dto.setUserId(user.getId());
+        dto.setUsername(user.getUsername());
+        dto.setEmail(user.getEmail());
+        // Ако имаш роля в DTO-то:
+        // dto.setRoleName(user.getRole().getName());
+        return dto;
+    }
     @Override
     public void updateUser(AddUserDTO user) {
        User byId = this.userRepo.findById(user.getId()).orElse(null);
@@ -330,7 +435,7 @@ public class UserServiceImpl implements UserService {
     }
     @Override
     public List<User> getUsersWithReviews() {
-        return users().stream().filter(e -> e.getRole().stream().noneMatch(f -> Objects.equals(f.getName(), "ADMIN")))
+        return this.userRepo.findAll().stream().filter(e -> e.getRole().stream().noneMatch(f -> Objects.equals(f.getName(), "ADMIN")))
                 .map(user -> {
                     List<Review> reviews = reviewService.findReviewByReviewedUser(user);
                     reviews.forEach(review -> review.setComments(commentService.findCommentByReview(review)));
@@ -338,4 +443,8 @@ public class UserServiceImpl implements UserService {
                     return user;
                 }).collect(Collectors.toList());
     }
+    public List<User>mapUsers(){
+        return this.userRepo.findAll();
+    }
+
 }

@@ -5,6 +5,8 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import {UserService} from '../services/user.service';
 import {AuthService} from '../services/auth.service';
+import {BlockService} from '../services/block.service';
+import {ReviewService} from '../services/review.service';
 
 
 @Component({
@@ -87,7 +89,9 @@ export class UserProfileComponent implements OnInit {
     private route: ActivatedRoute,
     private router: Router,
     private userService: UserService,
-    private authService: AuthService // <--- Inject Auth Service
+    private authService: AuthService,
+    private blockService: BlockService,
+    private reviewService:ReviewService
   ) {
     this.currentUsername = this.authService.getCurrentUsername();
   }
@@ -96,17 +100,16 @@ export class UserProfileComponent implements OnInit {
     const userIdParam = this.route.snapshot.paramMap.get('id');
 
     // SAFETY CHECK: Only load if it's a real number and not the word "undefined"
-    if (userIdParam && userIdParam !== 'undefined' && !isNaN(Number(userIdParam))) {
-      let number=Number(userIdParam);
-      this.loadUser(number);
+    if (userIdParam && userIdParam !== 'undefined') {
+      this.loadUser(userIdParam);
     } else {
       console.warn('Invalid User ID in URL:', userIdParam);
       this.router.navigate(['/']); // Redirect to home so they aren't stuck on a broken page
     }
   }
 
-  loadUser(id: number) {
-    this.authService.getUserProfile(id).subscribe({
+  loadUser(username: string) {
+    this.authService.getUserProfile(username).subscribe({
       next: (data) => {
         // UNWRAP BACKEND DATA: Grab 'userProfile' out of the Map your backend sends
         this.user = data.userProfile ? data.userProfile : data;
@@ -123,25 +126,24 @@ export class UserProfileComponent implements OnInit {
     if (!this.user || !this.currentUsername) return;
     if (!confirm(`Block ${this.user.username}?`)) return;
 
-    // Ensure your UserService has this method (see below)
-    this.userService.blockUser(this.currentUsername, this.user.username).subscribe({
+    // ИЗПОЛЗВАМЕ blockService, а не userService!
+    this.blockService.blockUser(this.currentUsername, this.user.username).subscribe({
       next: () => alert('User blocked'),
       error: (err) => alert('Error blocking user')
     });
   }
 
   submitReview() {
-    // Safely grab the ID whether the backend calls it 'userId' or 'id'
     const targetId = this.user.userId || this.user.id;
+    if (!this.user || !this.newReviewContent || !targetId || !this.currentUsername) return;
 
-    if (!this.user || !this.newReviewContent || !targetId) return;
-
-    this.userService.addReview(targetId, this.newReviewContent).subscribe({
+    // ИЗПОЛЗВАМЕ reviewService с 3 параметъра!
+    this.reviewService.addReview(this.currentUsername, targetId, this.newReviewContent).subscribe({
       next: () => {
-        this.newReviewContent = '';
-        this.loadUser(targetId); // Reload to show new review
+        alert('Review added!');
+        this.loadUser(this.user.username); // Презареждаме профила
       },
-      error: (err) => alert('Failed to submit review')
+      error: (err) => alert('Error adding review')
     });
   }
   }

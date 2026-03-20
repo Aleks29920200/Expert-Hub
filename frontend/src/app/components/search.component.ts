@@ -3,6 +3,8 @@ import { CommonModule } from '@angular/common';
 import { ActivatedRoute } from '@angular/router';
 import {User} from '../models/user.model';
 import {UserService} from '../services/user.service';
+import {SearchService} from '../services/search.service';
+import {UserDTO} from '../models/dtos.model';
 
 
 @Component({
@@ -30,10 +32,10 @@ import {UserService} from '../services/user.service';
   `
 })
 export class SearchComponent implements OnInit {
-  users: User[] = [];
+  users: UserDTO[] = [];
   isLoading = true;
 
-  constructor(private route: ActivatedRoute, private userService: UserService) {}
+  constructor(private route: ActivatedRoute, private searchService: SearchService) {}
 
   ngOnInit() {
     // Assuming the route is something like /search/:query
@@ -48,7 +50,7 @@ export class SearchComponent implements OnInit {
   }
 
   performSearch(query: string) {
-    this.userService.searchUsers(query).subscribe({
+    this.searchService.searchByKeyword(query).subscribe({
       next: (data) => {
         this.users = data;
         this.isLoading = false;

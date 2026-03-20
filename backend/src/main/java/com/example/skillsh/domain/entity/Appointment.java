@@ -1,11 +1,14 @@
 package com.example.skillsh.domain.entity;
 
+import com.example.skillsh.domain.entity.enums.StatusName;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.time.LocalDateTime;
+import java.util.HashSet;
+import java.util.Set;
 
 @Entity
 @Getter
@@ -14,17 +17,28 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 public class Appointment {
     @Id
-    @Column(name="appointment_id")
+    @Column(name = "appointment_id")
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-    @OneToOne
+    @ManyToOne // ПРОМЕНЕНО
+    @JoinColumn(name = "requester_id")
     private User requester;
-    @OneToOne
+
+    @ManyToOne // ПРОМЕНЕНО
+    @JoinColumn(name = "provider_id")
     private User provider;
-    @OneToOne
+
+    @ManyToOne // ПРОМЕНЕНО
+    @JoinColumn(name = "skill_id")
     private Skill skill;
     private LocalDateTime dateOfAppointment;
     private String name;
     @Enumerated(EnumType.STRING)
     private StatusName status;
 }
+
+
+
+
+
+

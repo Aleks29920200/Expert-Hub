@@ -1,17 +1,14 @@
-<nav class="navbar navbar-expand-lg navbar-dark bg-dark px-4 shadow-sm fixed-top">
+<nav class="navbar navbar-expand navbar-dark bg-dark px-4 py-1 shadow-sm fixed-top">
   <div class="container-fluid">
-    <a class="navbar-brand fw-bold d-flex align-items-center gap-2" routerLink="/home">
-      <i class="fas fa-handshake"></i> SkillSharing
+
+    <a class="navbar-brand fw-bold d-flex align-items-center gap-2 fs-5" routerLink="/home">
+      <i class="fas fa-handshake"></i>
     </a>
 
-    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-      <span class="navbar-toggler-icon"></span>
-    </button>
+    <div class="d-flex flex-grow-1 align-items-center w-100" id="navbarNav">
 
-    <div class="collapse navbar-collapse" id="navbarNav">
-
-      <form class="d-flex mx-auto my-2 my-lg-0 w-100 w-lg-50" role="search" (submit)="performSearch()">
-        <div class="input-group">
+      <form class="d-flex mx-auto my-1 w-100 w-lg-50 px-3" role="search" (submit)="performSearch()">
+        <div class="input-group input-group-sm">
           <input class="form-control" type="search"
                  placeholder="Search for skills (e.g. IT, Medicine)..."
                  [(ngModel)]="searchQuery" name="searchQuery">
@@ -21,48 +18,53 @@
         </div>
       </form>
 
-      <ul class="navbar-nav ms-auto gap-2 align-items-center">
+      <ul class="navbar-nav ms-auto gap-2 flex-row align-items-center" style="font-size: 0.9rem;">
 
         <li class="nav-item">
-          <a class="nav-link" routerLink="/home" routerLinkActive="active">
-            <i class="fas fa-home"></i> Home
+          <a class="nav-link py-1 px-2" routerLink="/home" routerLinkActive="active">
+            <i class="fas fa-home mb-1"></i> Home
           </a>
         </li>
 
         <ng-container *ngIf="currentUser">
           <li class="nav-item">
-            <a class="nav-link" routerLink="/calendar" routerLinkActive="active">
-              <i class="far fa-calendar-alt"></i> Calendar
+            <a class="nav-link py-1 px-2" routerLink="/calendar" routerLinkActive="active">
+              <i class="far fa-calendar-alt mb-1"></i> Calendar
             </a>
           </li>
           <li class="nav-item">
-            <a class="nav-link" routerLink="/chat" routerLinkActive="active">
-              <i class="far fa-comments"></i> Messages
+            <a class="nav-link py-1 px-2" routerLink="/chat" routerLinkActive="active">
+              <i class="far fa-comments mb-1"></i> Messages
             </a>
           </li>
 
           <li class="nav-item" *ngIf="isAdmin">
-            <a class="btn btn-warning btn-sm text-dark fw-bold" routerLink="/admin">
+            <a class="btn btn-warning btn-sm text-dark fw-bold py-0 px-2 ms-1" routerLink="/admin">
               <i class="fas fa-user-shield"></i> Admin
             </a>
           </li>
 
-          <li class="nav-item dropdown border-start ps-2 ms-2">
-            <a class="nav-link dropdown-toggle d-flex align-items-center gap-2" href="#" role="button" data-bs-toggle="dropdown">
-              <div class="w-8 h-8 rounded-full bg-secondary text-white d-flex justify-content-center align-items-center" style="width: 30px; height: 30px; border-radius: 50%;">
-                {{ currentUser.charAt(0).toUpperCase() }}
+          <li class="nav-item dropdown border-start border-secondary ps-3 ms-2">
+            <a class="nav-link py-1 d-flex align-items-center gap-2"
+               style="cursor: pointer;"
+               (click)="isUserMenuOpen = !isUserMenuOpen">
+              <div class="rounded-full bg-secondary text-white d-flex justify-content-center align-items-center" style="width: 26px; height: 26px; font-size: 0.8rem;">
+                <span>{{ currentUser?.charAt(0) || 'U' }}</span>
               </div>
               <span>{{ currentUser }}</span>
             </a>
-            <ul class="dropdown-menu dropdown-menu-end">
+
+            <ul class="dropdown-menu dropdown-menu-end shadow-sm"
+                [class.show]="isUserMenuOpen"
+                style="font-size: 0.9rem; position: absolute;">
               <li>
-                <a class="dropdown-item" [routerLink]="['/profile', currentUserId]">
-                  <i class="fas fa-user me-2"></i> My Profile
+                <a class="dropdown-item" [routerLink]="['/profile', currentUser]" (click)="isUserMenuOpen = false">
+                  <i class="fas fa-user me-2 text-secondary"></i> My Profile
                 </a>
               </li>
               <li><hr class="dropdown-divider"></li>
               <li>
-                <button class="dropdown-item text-danger" (click)="logout()">
+                <button class="dropdown-item text-danger" (click)="logout(); isUserMenuOpen = false">
                   <i class="fas fa-sign-out-alt me-2"></i> Logout
                 </button>
               </li>
@@ -72,15 +74,20 @@
 
         <ng-container *ngIf="!currentUser">
           <li class="nav-item">
-            <a class="nav-link" routerLink="/login" routerLinkActive="active">Login</a>
+            <a class="nav-link py-1 px-2" routerLink="/login" routerLinkActive="active">Login</a>
           </li>
-          <li class="nav-item dropdown">
-            <a class="btn btn-outline-light btn-sm dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+
+          <li class="nav-item dropdown ms-2">
+            <a class="btn btn-outline-light btn-sm py-0 px-2"
+               style="cursor: pointer;"
+               (click)="isRegisterMenuOpen = !isRegisterMenuOpen">
               Register
             </a>
-            <ul class="dropdown-menu dropdown-menu-end">
-              <li><a class="dropdown-item" routerLink="/register/client">As Client</a></li>
-              <li><a class="dropdown-item" routerLink="/register/expert">As Expert</a></li>
+            <ul class="dropdown-menu dropdown-menu-end shadow-sm"
+                [class.show]="isRegisterMenuOpen"
+                style="font-size: 0.9rem; position: absolute;">
+              <li><a class="dropdown-item" routerLink="/register/client" (click)="isRegisterMenuOpen = false">As Client</a></li>
+              <li><a class="dropdown-item" routerLink="/register/expert" (click)="isRegisterMenuOpen = false">As Expert</a></li>
             </ul>
           </li>
         </ng-container>
@@ -90,6 +97,7 @@
   </div>
 </nav>
 
-<div class="container-fluid p-0" style="padding-top: 70px;">
+<div class="container-fluid p-0" style="padding-top: 55px;">
   <router-outlet></router-outlet>
+  <app-ai-chat></app-ai-chat>
 </div>

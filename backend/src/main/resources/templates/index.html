@@ -1,87 +1,266 @@
 <!DOCTYPE html>
 <html lang="en" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
 <head>
-  <meta charset="UTF-8">
-  <title>SkillSharing</title>
-  <link rel="stylesheet" href="/css/reset-css.css"/>
-  <link rel="stylesheet" href="/css/bootstrap.min.css"/>
-  <link rel="stylesheet" type="text/css" href="/css/main.css"/>
-  <script src="/js/jquery-3.5.1.slim.min.js"></script>
-  <script src="/js/bootstrap.min.js"></script>
+    <meta charset="UTF-8">
+    <title>SkillSharing</title>
+    <link rel="stylesheet" href="/css/bootstrap.min.css">
+    <link rel="stylesheet" href="/css/main.css">
+    <script src="/js/jquery-3.5.1.slim.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/sockjs-client/1.1.4/sockjs.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/stomp.js/2.3.3/stomp.min.js"></script>
-  <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+    <style>
+        /* === GLOBAL STYLES === */
+        body {
+            background: linear-gradient(135deg, #f5f7fa, #c3cfe2);
+            font-family: 'Segoe UI', sans-serif;
+            color: #333;
+        }
+
+        .navbar {
+            background: linear-gradient(135deg, #343a40, #212529);
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+        }
+
+        .navbar-brand {
+            font-weight: 600;
+            letter-spacing: 0.5px;
+        }
+
+        .navbar img {
+            filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.4));
+        }
+
+        /* === CATEGORY BUTTONS === */
+        .category-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 12px;
+            margin-top: 2rem;
+        }
+
+        .category-buttons button {
+            border: none;
+            color: #fff;
+            font-weight: 500;
+            padding: 12px 24px;
+            border-radius: 50px;
+            transition: all 0.3s ease;
+            font-size: 1rem;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+        }
+
+        .category-buttons button:hover {
+            transform: translateY(-4px);
+            filter: brightness(1.1);
+            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.25);
+        }
+
+        /* === SEARCH BAR === */
+        .search-bar {
+            margin-top: 2rem;
+        }
+
+        .search-bar .input-group {
+            border-radius: 50px;
+            overflow: hidden;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        .search-bar input {
+            padding: 15px 20px;
+            border: none;
+            font-size: 1rem;
+        }
+
+        .search-bar button {
+            background: linear-gradient(135deg, #f16000, #ff7b2e);
+            border: none;
+            color: #fff;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+            padding: 15px 30px;
+            transition: all 0.3s ease;
+        }
+
+        .search-bar button:hover {
+            background: linear-gradient(135deg, #e65700, #ff9b55);
+            transform: translateY(-2px);
+        }
+
+        /* === CARD STYLES === */
+        .card {
+            border: none;
+            border-radius: 16px;
+            backdrop-filter: blur(12px);
+            background: rgba(255, 255, 255, 0.9);
+            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 10px 24px rgba(0, 0, 0, 0.15);
+        }
+
+        .card-body img {
+            border: 3px solid #f16000;
+            transition: transform 0.3s ease;
+        }
+
+        .card-body img:hover {
+            transform: scale(1.05);
+        }
+
+        .card-title {
+            font-weight: 600;
+            color: #222;
+        }
+
+        .text-muted {
+            font-size: 0.9rem;
+        }
+
+        /* === RESPONSIVE === */
+        @media (max-width: 576px) {
+            .category-buttons {
+                gap: 8px;
+            }
+
+            .category-buttons button {
+                width: 100%;
+            }
+
+            .search-bar .input-group {
+                width: 100%;
+            }
+        }
+             /* Elegant Navbar */
+         .elegant-navbar {
+             background: linear-gradient(135deg, #343a40, #1d2124);
+             backdrop-filter: blur(8px);
+             border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+             transition: background 0.3s ease, box-shadow 0.3s ease;
+         }
+
+        .elegant-navbar:hover {
+            background: linear-gradient(135deg, #2b3035, #191c1f);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+        }
+
+        .navbar-brand {
+            color: #fff !important;
+            font-size: 1.4rem;
+            letter-spacing: 0.5px;
+            transition: color 0.3s ease;
+        }
+
+        .navbar-brand:hover {
+            color: #f16000 !important;
+        }
+
+        .nav-btn {
+            border-radius: 30px;
+            border: 1px solid #fff;
+            transition: all 0.3s ease;
+            padding: 8px 20px;
+            font-weight: 500;
+        }
+
+        .nav-btn:hover {
+            background: #f16000;
+            border-color: #f16000;
+            color: #fff;
+            transform: translateY(-2px);
+        }
+
+        .navbar-toggler {
+            border: none;
+        }
+
+        .navbar-toggler:focus {
+            box-shadow: none;
+            outline: none;
+        }
+
+    </style>
 </head>
-<body style="background-color: #6f42c1">
-    <nav class="navbar navbar-expand-lg fixed-top">
-        <div class="collapse navbar-collapse">
-            <ul class="navbar-nav mr-auto col-12 justify-content-between">
-                <li class="nav-item">
-                    <a class="nav-link" th:href="@{/register}">
-                        <button class="btn-primary btn-dark" type="button">
-                            Register
-                        </button>
-                    </a>
-                </li>
-                <li class="nav-link">
-                    <a class="nav-link" th:href="@{/login}">
-                        <button class="btn-primary btn-dark" type="button">
-                            Login
-                        </button>
-                    </a>
-                </li>
-                <li class="nav-link">
-                    <a class="nav-link" th:href="@{/home}" sec:authorize="isAuthenticated()">
-                        <button class="btn-primary btn-dark" type="button">
-                            Home
-                        </button>
-                    </a>
-                </li>
-                <li class="nav-tabs">
-                    <div class="flex-row">
-                        <button type="button" onclick="window.location.href='/index/search/it'" style="background-color: #34ce57;">
-                            It
-                        </button>
-                        <button id="medicine"  type="button" onclick="window.location.href='/index/search/medicine'" style="background-color: #6f42c1;">
-                            Medicine
-                        </button>
-                        <button id="archeology" type="button" onclick="window.location.href='/index/search/archeology'" style="background-color: #20c997;">
-                            Archeology
-                        </button>
-                    </div>
-                    <form th:action="@{/search}" method="post" th:object="${searchDto}">
-                        <label for="search">
-                            <input type="search" name="search" id="search" th:field="*{info}">
-                        </label>
-                        <button type="submit" style="background-color: #f16000">Search</button>
-                    </form>
-                </li>
-            </ul>
+<body>
+
+<!-- Navbar -->
+<!-- Navbar -->
+<nav class="navbar navbar-expand-lg navbar-dark fixed-top shadow-sm elegant-navbar">
+    <div class="container-fluid px-4">
+        <a class="navbar-brand d-flex align-items-center fw-bold" href="/">
+            <img src="/img/logo.png" alt="Logo" width="42" class="me-2 rounded-circle border border-light">
+            SkillSharing
+        </a>
+
+        <!-- Toggler for mobile -->
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarContent"
+                aria-controls="navbarContent" aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+
+        <div class="collapse navbar-collapse justify-content-end" id="navbarContent">
+            <div class="d-flex gap-2">
+                <a th:href="@{/register}" sec:authorize="isAnonymous()">
+                    <button class="btn btn-outline-light nav-btn">Register</button>
+                </a>
+                <a th:href="@{/login}" sec:authorize="isAnonymous()">
+                    <button class="btn btn-outline-light nav-btn">Login</button>
+                </a>
+                <a th:href="@{/home}" sec:authorize="isAuthenticated()">
+                    <button class="btn btn-outline-light nav-btn">Home</button>
+                </a>
+            </div>
         </div>
-    </nav>
-    <div th:each="skill : ${skills}">
-        <div th:each="user : ${skill.createdBy}">
-            <div class="container">
-                <div
-                        class="square square-lg bg-secondary responsive  "  >
-                    <h2>Name <strong  th:text="*{user.firstName}"></strong></h2>
-                    <h4>Age: <strong th:text="*{user.lastName}"></strong></h4>
-                    <h4>Address: <strong th:text="*{user.email}"></strong></h4>
-                    <h4>Start: <strong th:text="*{user.username}"></strong></h4>
+    </div>
+</nav>
+
+
+<!-- Spacer -->
+<div style="height: 90px;"></div>
+
+<div class="container text-center">
+
+
+    <div class="category-buttons">
+        <button onclick="window.location.href='/index/search/it'" style="background-color: #007bff;">IT</button>
+        <button onclick="window.location.href='/index/search/medicine'" style="background-color: #6f42c1;">Medicine</button>
+        <button onclick="window.location.href='/index/search/engineering'" style="background-color: #ffc107;">Engineering</button>
+        <button onclick="window.location.href='/index/search/education'" style="background-color: #fd7e14;">Education</button>
+        <button onclick="window.location.href='/index/search/law'" style="background-color: #dc3545;">Law</button>
+        <button onclick="window.location.href='/index/search/art'" style="background-color: #6610f2;">Art</button>
+        <button onclick="window.location.href='/index/search/business'" style="background-color: #20c997;">Business</button>
+        <button onclick="window.location.href='/index/search/science'" style="background-color: #17a2b8;">Science</button>
+    </div>
+
+    <!-- Search -->
+    <form th:action="@{/search}" method="post" th:object="${searchDto}" class="search-bar d-flex justify-content-center">
+        <div class="input-group w-75">
+            <input type="search" name="search" id="search" th:field="*{info}" class="form-control"
+                   placeholder="Search for a skill...">
+            <button type="submit" class="btn">Search</button>
+        </div>
+    </form>
+
+    <!-- Skill Cards -->
+    <div class="row mt-5" th:each="skill : ${skills}">
+        <div class="col-md-6 col-lg-4 mb-4" th:each="user : ${skill.createdBy}">
+            <div class="card h-100 p-3">
+                <div class="card-body text-center">
+                    <img th:src="'data:image/jpeg;base64,' + ${imageUtil.getImgData(user.getPhotoUrl().getFileData())}"
+                         alt="User Photo" class="rounded-circle mb-3"
+                         style="width:100px; height:100px; object-fit:cover;">
+                    <h5 class="card-title mb-1" th:text="${user.firstName + ' ' + user.lastName}">User Name</h5>
+                    <p class="text-muted mb-2" th:text="${user.username}">@username</p>
+                    <p class="mb-0"><strong>Email:</strong> <span th:text="${user.email}"></span></p>
                 </div>
             </div>
         </div>
     </div>
-    <div th:each="user : ${users}" th:action="@{'/index/search/'+${skill.category}}">
-        <div class="container">
-            <div
-                    class="square square-lg bg-secondary responsive  "  >
-                <h2>Name <strong  th:text="*{user.firstName}"></strong></h2>
-                <h4>Age: <strong th:text="*{user.lastName}"></strong></h4>
-                <h4>Address: <strong th:text="*{user.email}"></strong></h4>
-                <h4>Start: <strong th:text="*{user.username}"></strong></h4>
-            </div>
-        </div>
-    </div>
+</div>
+
 </body>
 </html>

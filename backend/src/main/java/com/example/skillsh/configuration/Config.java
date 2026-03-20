@@ -1,19 +1,22 @@
 package com.example.skillsh.configuration;
 
-import com.example.skillsh.domain.dto.AddAppointment;
-import com.example.skillsh.domain.dto.RegisterDto;
+import com.example.skillsh.domain.dto.appointment.AddAppointment;
+import com.example.skillsh.domain.dto.user.RegisterAsExpertDto;
 import com.example.skillsh.domain.view.UserView;
+import com.example.skillsh.repository.UserRepo;
+import com.example.skillsh.web.SkillSharingUserDetailsService;
 import org.modelmapper.ModelMapper;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 
 @Configuration
 public class Config {
 
     @Bean
-    public RegisterDto registerDto(){
-        return new RegisterDto();
+    public RegisterAsExpertDto registerDto(){
+        return new RegisterAsExpertDto();
     }
     @Bean
     public AddAppointment addAppointment(){

@@ -1,4 +1,10 @@
 spring:
+  main:
+    allow-bean-definition-overriding: true
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 10MB
   security:
     oauth2:
       client:
@@ -10,7 +16,7 @@ spring:
               - identify
               - email
             redirect-uri: http://localhost:8000/login/oauth2/code/discord
-            authorization-grant-type: authorization_code  # Ensure this is included
+            authorization-grant-type: authorization_code
           facebook:
             client-id: 894218782668812
             client-secret: be94cdd44f6ce03736cea9bacb7e44bf
@@ -27,7 +33,7 @@ spring:
           facebook:
             authorization-uri: https://www.facebook.com/v10.0/dialog/oauth
             token-uri: https://graph.facebook.com/v10.0/oauth/access_token
-            user-info-uri: https://graph.facebook.com/me?fields=id,name,email
+            user-info-uri: https://graph.facebook.com/me?fields=id,name,email,picture
   jpa:
     properties:
       hibernate:
@@ -40,10 +46,10 @@ spring:
     hidden-method-filter:
       enabled: true
   datasource:
-    driver-class-name: com.mysql.cj.jdbc.Driver  # Use 'com.mysql.cj.jdbc.Driver' for MySQL 8 and above
-    password: samsungga123@#456
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    password: 12345
     username: root
-    url: jdbc:mysql://localhost:3306/trading
+    url: jdbc:mysql://localhost:3306/school
   mail:
     properties:
       smtp:
@@ -67,6 +73,18 @@ logging:
         sql: DEBUG
     nodeValue: WARN
     blog: WARN
-
+stripe:
+  api:
+    key: sk_test_51Ps0f3RwjNxpgERliRUY5cdBypRHoZeiJsawLC1wsD0jTts63a7AK4UvFTYxvdzbjEBlLT69zLqGcYIipMDi7XHD00yUXrWdIU
+# Вземи своя ключ от platform.openai.com
+gemini:
+  api:
+    key: AIzaSyDth_SlOyd9nvwZs8kkQn4ZKr-OVq_9drk
 server:
-  port: 8000
+  servlet:
+    session:
+      cookie:
+        http-only: true
+  port: 8080
+
+

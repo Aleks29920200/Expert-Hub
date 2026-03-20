@@ -13,13 +13,38 @@ export class ReviewService {
   constructor(private http: HttpClient) {}
 
   // Matches: addReview(reviewer, revieweeId, content)
-  addReview(reviewerUsername: string, revieweeId: number, content: string): Observable<void> {
-    const payload = { reviewerUsername, revieweeId, content };
-    return this.http.post<void>(`${this.apiUrl}/add`, payload);
+  // targetUsername вече е string!
+  addReview(reviewerUsername: string, targetUsername: string, content: string) {
+    const payload = {
+      reviewerUsername: reviewerUsername,
+      targetUsername: targetUsername, // Сменихме targetId с targetUsername
+      content: content
+    };
+    return this.http.post(`${this.apiUrl}/add`, payload);
+  }
+// В review.service.ts
+  getReviewsForUser(username: string): Observable<any[]> {
+    // Увери се, че имаш такъв GET ендпойнт в Java бекенда си!
+    // Напр: @GetMapping("/user/{username}")
+    return this.http.get<any[]>(`${this.apiUrl}/user/${username}`);
+  }
+// Редактиране на ревю
+  // Редактиране
+  updateReview(reviewId: number, content: string): Observable<any> {
+    return this.http.put(`${this.apiUrl}/${reviewId}`, { content: content });
   }
 
-  getReviewsForUser(username: string): Observable<ReviewDto[]> {
-    // Assuming controller endpoint is something like /reviews/user/{username}
-    return this.http.get<ReviewDto[]>(`${this.apiUrl}/user/${username}`);
+  // Изтриване
+  deleteReview(reviewId: number): Observable<any> {
+    return this.http.delete(`${this.apiUrl}/${reviewId}`);
+  }
+
+  // Отговор
+  replyToReview(reviewId: number, replyContent: string, authorUsername: string): Observable<any> {
+    // Пращаме JSON обект, който Spring Boot ще конвертира в Map<String, String>
+    return this.http.post(`${this.apiUrl}/${reviewId}/reply`, {
+      content: replyContent,
+      authorUsername: authorUsername
+    });
   }
 }

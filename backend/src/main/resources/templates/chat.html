@@ -1,462 +1,1484 @@
 <!DOCTYPE html>
-<html lang="en" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
 <head>
-    <meta charset="UTF-8">
-    <title>SkillSharing</title>
-    <link rel="stylesheet" href="/css/reset-css.css"/>
-    <link rel="stylesheet" href="/css/bootstrap.min.css"/>
-    <link rel="stylesheet" type="text/css" href="/css/main.css"/>
-    <script src="/js/jquery-3.5.1.slim.min.js"></script>
-    <script src="/js/bootstrap.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/sockjs-client/1.1.4/sockjs.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/stomp.js/2.3.3/stomp.min.js"></script>
+    <meta charset="UTF-8" />
+    <title>Chat</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!-- External CSS Libraries -->
+    <link rel="stylesheet" href="/css/bootstrap.min.css">
+    <link rel="stylesheet" href="/css/main.css">
+    <script src="https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/stompjs@2.3.3/lib/stomp.min.js"></script>
+    <script type="module" src="https://cdn.jsdelivr.net/npm/emoji-picker-element@^1/index.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        /* --- Root Variables for Theming --- */
+        :root {
+            --sidebar-bg: #2c3e50; /* Dark blue/grey */
+            --sidebar-text: #ecf0f1; /* Light grey */
+            --active-user-bg: #34495e; /* Slightly lighter dark blue */
+            --chat-bg: #f5f7fa; /* Light background for chat area */
+            --message-sender-bg: #d1f5d3; /* Light green for sender */
+            --message-receiver-bg: #ffffff; /* White for receiver */
+            --primary-button-bg: #3498db; /* Vibrant blue */
+            --primary-button-hover: #2980b9; /* Darker blue on hover */
+            --secondary-button-bg: #95a5a6; /* Grey for settings/mute */
+            --text-dark: #34495e; /* Dark text for readability */
+            --border-color: #e0e0e0; /* Light border */
+        }
+
+        html, body {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            font-family: 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
+            background: var(--chat-bg);
+            color: var(--text-dark);
+            overflow: hidden; /* Prevent body scroll */
+        }
+
+        #chat-page {
+            display: flex;
+            height: 100vh;
+            width: 100vw;
+        }
+
+        /* --- Sidebar Styles --- */
+        .sidebar {
+            width: 280px; /* Slightly wider sidebar */
+            background: var(--sidebar-bg);
+            color: var(--sidebar-text);
+            display: flex;
+            flex-direction: column;
+            padding: 1.5rem 1rem; /* More vertical padding */
+            box-shadow: 2px 0 5px rgba(0,0,0,0.1);
+        }
+
+        .sidebar h2 {
+            font-size: 1.3rem;
+            margin-bottom: 1.5rem; /* More space below heading */
+            color: var(--sidebar-text);
+            text-align: center;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            padding-bottom: 1rem;
+        }
+
+        .sidebar ul {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            overflow-y: auto;
+            flex: 1;
+        }
+
+        .sidebar li {
+            padding: 12px 15px; /* More padding for list items */
+            border-radius: 8px; /* Rounded corners */
+            cursor: pointer;
+            margin-bottom: 8px; /* Space between users */
+            transition: background-color 0.2s ease, transform 0.1s ease;
+            display: flex;
+            align-items: center;
+            justify-content: space-between; /* To push settings to the right */
+            gap: 10px;
+            position: relative; /* For dropdown positioning */
+        }
+
+        .sidebar li:hover {
+            background: var(--active-user-bg);
+            transform: translateX(3px); /* Subtle hover effect */
+        }
+
+        .sidebar li.active {
+            background: var(--active-user-bg);
+            font-weight: bold;
+        }
+
+        .sidebar li.blocked {
+            opacity: 0.6;
+            cursor: not-allowed;
+            color: rgba(255,255,255,0.6);
+            position: relative;
+        }
+        .sidebar li.blocked::after {
+            content: '🚫';
+            position: absolute;
+            right: 15px; /* Adjust if settings button is present */
+            font-size: 1rem;
+        }
+
+        /* --- Per-User Settings Dropdown --- */
+        .user-settings-container {
+            position: relative;
+            display: flex; /* To align icon and menu */
+            align-items: center;
+            z-index: 10; /* Ensure it's above other list items */
+        }
+
+        .user-settings-toggle {
+            background: none;
+            border: none;
+            font-size: 1.1rem;
+            cursor: pointer;
+            color: rgba(255,255,255,0.7);
+            transition: color 0.2s ease;
+            padding: 5px;
+            border-radius: 5px;
+            line-height: 1; /* Prevent extra space */
+        }
+        .user-settings-toggle:hover {
+            color: var(--sidebar-text);
+        }
+
+        .user-settings-menu {
+            position: absolute;
+            top: 0; /* Align with the top of the toggle button */
+            right: 30px; /* Position to the left of the toggle button */
+            background: var(--message-receiver-bg);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            border-radius: 8px;
+            display: flex;
+            flex-direction: column;
+            z-index: 1000;
+            overflow: hidden;
+            min-width: 150px;
+        }
+        .user-settings-menu button {
+            width: 100%;
+            padding: 10px 15px;
+            text-align: left;
+            font-size: 0.9rem;
+            color: var(--text-dark);
+            border: none; /* Remove default button border */
+            border-bottom: 1px solid var(--border-color);
+            background: none; /* Remove default button background */
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+        }
+        .user-settings-menu button:last-child {
+            border-bottom: none;
+        }
+        .user-settings-menu button:hover {
+            background-color: #f2f4f6;
+            color: var(--primary-button-bg);
+        }
+        .user-settings-menu button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            background-color: #f8f8f8;
+        }
+
+        /* --- Chat Container Styles --- */
+        .chat-wrapper {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background: var(--chat-bg);
+            border-left: 1px solid var(--border-color);
+        }
+
+        .chat-header {
+            padding: 1.5rem 1.5rem 1rem; /* Adjust padding */
+            background: var(--message-receiver-bg);
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+
+        .chat-header h3 {
+            margin: 0;
+            font-size: 1.5rem;
+            color: var(--text-dark);
+        }
+
+        .chat-header small {
+            color: #6c757d;
+            margin-left: 10px;
+        }
+
+        .chat-controls {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        /* Call Buttons */
+        .chat-controls button {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: var(--primary-button-bg);
+            transition: color 0.2s ease, transform 0.1s ease;
+            padding: 5px;
+            border-radius: 5px;
+        }
+        .chat-controls button:hover {
+            color: var(--primary-button-hover);
+            transform: scale(1.1);
+        }
+        .chat-controls #endCall {
+            color: #e74c3c; /* Red for end call */
+        }
+        .chat-controls #endCall:hover {
+            color: #c0392b;
+        }
+
+
+        /* --- Video Call Panel --- */
+        .video-panel {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin: 1rem 1.5rem; /* Consistent padding */
+            background: #222; /* Dark background for videos */
+            border-radius: 10px;
+            padding: 15px;
+            position: relative;
+            box-shadow: inset 0 0 10px rgba(0,0,0,0.5);
+        }
+        .video-panel video {
+            width: 100%;
+            max-width: 300px; /* Limit video size for better layout */
+            height: 200px;
+            background: black;
+            border-radius: 8px;
+            object-fit: cover;
+            border: 2px solid rgba(255,255,255,0.1);
+        }
+        #localVideo {
+            transform: scaleX(-1); /* Mirror local video */
+        }
+
+        .call-toolbar {
+            position: absolute;
+            bottom: 15px;
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            background: rgba(0,0,0,0.5);
+            padding: 8px 15px;
+            border-radius: 20px;
+        }
+        .call-toolbar button {
+            background: rgba(255,255,255,0.2);
+            border: none;
+            border-radius: 50%;
+            width: 38px;
+            height: 38px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 1.2rem;
+            cursor: pointer;
+            color: white;
+            transition: background-color 0.2s ease;
+        }
+        .call-toolbar button:hover {
+            background: rgba(255,255,255,0.3);
+        }
+        .call-toolbar span {
+            color: white;
+            font-size: 1rem;
+            min-width: 50px;
+            text-align: center;
+        }
+
+        /* --- Chat Messages Area --- */
+        #chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 1.5rem;
+            background: var(--chat-bg);
+            scroll-behavior: smooth; /* Smooth scrolling for new messages */
+            display: flex; /* Use flexbox for messages */
+            flex-direction: column; /* Stack messages vertically */
+            align-items: flex-start; /* Default alignment */
+        }
+
+        .message {
+            max-width: 70%; /* Allow messages to be a bit wider */
+            padding: 12px 18px; /* More padding */
+            border-radius: 18px; /* More rounded bubbles */
+            position: relative;
+            margin-bottom: 10px; /* Space between messages */
+            font-size: 0.95rem;
+            line-height: 1.4;
+            word-wrap: break-word; /* Ensure long words wrap */
+            box-shadow: 0 1px 2px rgba(0,0,0,0.08); /* Subtle shadow */
+            transition: all 0.2s ease-in-out;
+        }
+
+        .sender {
+            align-self: flex-end; /* Align sender messages to the right */
+            background-color: var(--message-sender-bg);
+            color: var(--text-dark);
+            border-bottom-right-radius: 4px; /* Tail effect */
+        }
+
+        .receiver {
+            align-self: flex-start; /* Align receiver messages to the left */
+            background-color: var(--message-receiver-bg);
+            color: var(--text-dark);
+            border-bottom-left-radius: 4px; /* Tail effect */
+        }
+
+        .message p {
+            margin: 0;
+        }
+
+        .message-timestamp {
+            font-size: 0.75rem;
+            color: #888;
+            margin-top: 5px;
+            text-align: right;
+            display: block; /* Ensure it takes full width */
+        }
+        .receiver .message-timestamp {
+            text-align: left;
+        }
+
+
+        .message-options {
+            position: absolute;
+            top: 50%; /* Center vertically */
+            transform: translateY(-50%);
+            display: flex;
+            gap: 5px;
+            opacity: 0; /* Hidden by default */
+            transition: opacity 0.2s ease;
+        }
+        .sender .message-options {
+            right: -40px; /* Position outside the bubble for sender */
+        }
+        .receiver .message-options {
+            left: -40px; /* Position outside the bubble for receiver */
+        }
+
+        .message:hover .message-options {
+            opacity: 1; /* Show on hover */
+        }
+
+        .message-options span {
+            cursor: pointer;
+            font-size: 0.9rem;
+            background: rgba(0,0,0,0.05);
+            padding: 5px;
+            border-radius: 50%;
+            width: 25px;
+            height: 25px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: #6c757d;
+            transition: background-color 0.2s ease;
+        }
+        .message-options span:hover {
+            background-color: rgba(0,0,0,0.1);
+        }
+        /* Specific hover for delete */
+        .message-options span.delete-icon:hover {
+            background-color: #e74c3c;
+            color: white;
+        }
+
+
+        /* --- Message Input Area --- */
+        .message-input {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 1rem 1.5rem;
+            background: var(--message-receiver-bg);
+            border-top: 1px solid var(--border-color);
+            box-shadow: 0 -2px 4px rgba(0,0,0,0.05);
+            position: relative; /* For emoji picker positioning */
+        }
+
+        .message-input input[type="text"] {
+            flex: 1;
+            padding: 12px 15px;
+            font-size: 1rem;
+            border: 1px solid var(--border-color);
+            border-radius: 25px; /* Pill shape */
+            outline: none;
+            transition: border-color 0.2s ease, box-shadow 0.2s ease;
+        }
+        .message-input input[type="text"]:focus {
+            border-color: var(--primary-button-bg);
+            box-shadow: 0 0 0 0.2rem rgba(52, 152, 219, 0.25);
+        }
+
+        .message-input button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 25px; /* Pill shape */
+            font-size: 1rem;
+            cursor: pointer;
+            background-color: var(--primary-button-bg);
+            color: white;
+            transition: background-color 0.2s ease, transform 0.1s ease;
+        }
+        .message-input button:hover {
+            background-color: var(--primary-button-hover);
+            transform: translateY(-1px);
+        }
+        #editButton {
+            background-color: #f39c12; /* Orange for edit */
+        }
+        #editButton:hover {
+            background-color: #e67e22;
+        }
+
+        #emoji-toggle {
+            font-size: 1.6rem;
+            cursor: pointer;
+            color: #7f8c8d;
+            transition: color 0.2s ease, transform 0.1s ease;
+            padding: 5px;
+        }
+        #emoji-toggle:hover {
+            color: var(--primary-button-bg);
+            transform: scale(1.1);
+        }
+
+        /* Emoji Picker */
+        emoji-picker {
+            position: absolute;
+            bottom: 70px; /* Position above input */
+            left: 15px;
+            width: 320px; /* A bit wider for more emojis per row */
+            height: 250px; /* Adjust height */
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.15);
+            z-index: 1001; /* Ensure it's on top */
+            --num-columns: 8; /* More columns for emojis */
+            --emoji-size: 24px;
+            --background: var(--message-receiver-bg);
+            --border-radius: 8px;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        /* Utility for messages when chat is disabled */
+        .chat-disabled-message {
+            padding: 1.5rem;
+            color: #e74c3c; /* Red color */
+            font-weight: bold;
+            text-align: center;
+            margin-top: 2rem;
+            background: #fdf5f5;
+            border: 1px solid #fbdada;
+            border-radius: 8px;
+        }
+
+        /* --- Responsive Adjustments --- */
+        @media (max-width: 768px) {
+            #chat-page {
+                flex-direction: column;
+                height: auto; /* Allow content to dictate height */
+            }
+            .sidebar {
+                width: 100%;
+                height: 200px; /* Fixed height for sidebar on mobile */
+                flex-direction: row;
+                overflow-x: auto;
+                overflow-y: hidden;
+                padding: 0.8rem;
+                border-bottom: 1px solid rgba(255,255,255,0.1);
+            }
+            .sidebar h2 {
+                display: none; /* Hide heading on mobile */
+            }
+            .sidebar ul {
+                display: flex;
+                flex-direction: row;
+                gap: 10px;
+                flex-wrap: nowrap;
+            }
+            .sidebar li {
+                flex-shrink: 0; /* Prevent shrinking */
+                width: auto;
+                margin-bottom: 0;
+                padding: 8px 12px;
+            }
+            .chat-wrapper {
+                flex: 1;
+                width: 100%;
+            }
+            .video-panel {
+                flex-direction: column;
+                align-items: center;
+            }
+            .video-panel video {
+                width: 90%;
+                max-width: unset;
+                height: 150px;
+            }
+            .message {
+                max-width: 85%;
+            }
+            .message-options {
+                display: none; /* Hide on small screens to avoid clutter */
+            }
+            .message:hover .message-options {
+                display: none;
+            }
+            .message-input {
+                padding: 0.8rem;
+            }
+        }
+
+        /* Typing Indicator Styles */
+        #typingIndicator {
+            font-size: 0.9rem;
+            color: #6c757d;
+            margin-top: 5px;
+            margin-left: 1.5rem;
+            height: 20px; /* Reserve space to prevent layout shifts */
+        }
+    </style>
 </head>
-<style>
-    .emoji-drawer {
-        display: grid;
-
-        grid-template-columns: repeat(3, 1fr);
-
-        width: 100px;
-
-        margin-bottom: 32px;
-        transition: opacity 0.2s;
-    }
-
-    .hidden {
-        opacity: 0;
-    }
-
-    .emoji {
-        text-align: center;
-        font-size: 24px;
-        padding: 8px;
-    }
-
-    .emoji:hover {
-        cursor: pointer;
-    }
-</style>
 <body>
-<div class="user-form justify-content-sm-center" id="username-page">
-    <h2>Enter Chatroom</h2>
-    <form id="usernameForm">
-        <label for="nickname">Nickname:</label>
-        <input type="text" id="nickname" name="nickname" th:value="${username}" required>
-
-        <label for="fullName">Real Name:</label>
-        <input type="text" id="fullName" name="fullName" th:value="${firstname}" required>
-
-        <button type="submit">Enter Chatroom</button>
-    </form>
-</div>
-
-<div class="hidden dropdown-menu-right" id="navigation">
-    <a class="dropdown-item" href="#reply" id="replyToMessage"><svg xmlns="http://www.w3.org/2000/svg"  viewBox="0 0 512 512"><path d="M205 34.8c11.5 5.1 19 16.6 19 29.2v64H336c97.2 0 176 78.8 176 176c0 113.3-81.5 163.9-100.2 174.1c-2.5 1.4-5.3 1.9-8.1 1.9c-10.9 0-19.7-8.9-19.7-19.7c0-7.5 4.3-14.4 9.8-19.5c9.4-8.8 22.2-26.4 22.2-56.7c0-53-43-96-96-96H224v64c0 12.6-7.4 24.1-19 29.2s-25 3-34.4-5.4l-160-144C3.9 225.7 0 217.1 0 208s3.9-17.7 10.6-23.8l160-144c9.4-8.5 22.9-10.6 34.4-5.4z"/></svg></a>
-    <a class="dropdown-item" href="#delete"  id="deleteMessage"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><path d="M135.2 17.7C140.6 6.8 151.7 0 163.8 0H284.2c12.1 0 23.2 6.8 28.6 17.7L320 32h96c17.7 0 32 14.3 32 32s-14.3 32-32 32H32C14.3 96 0 81.7 0 64S14.3 32 32 32h96l7.2-14.3zM32 128H416V448c0 35.3-28.7 64-64 64H96c-35.3 0-64-28.7-64-64V128zm96 64c-8.8 0-16 7.2-16 16V432c0 8.8 7.2 16 16 16s16-7.2 16-16V208c0-8.8-7.2-16-16-16zm96 0c-8.8 0-16 7.2-16 16V432c0 8.8 7.2 16 16 16s16-7.2 16-16V208c0-8.8-7.2-16-16-16zm96 0c-8.8 0-16 7.2-16 16V432c0 8.8 7.2 16 16 16s16-7.2 16-16V208c0-8.8-7.2-16-16-16z"/></svg></a>
-    <a class="dropdown-item" href="#edit" id="editMessage"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><path d="M402.6 83.2l90.2 90.2c3.8 3.8 3.8 10 0 13.8L274.4 405.6l-92.8 10.3c-12.4 1.4-22.9-9.1-21.5-21.5l10.3-92.8L388.8 83.2c3.8-3.8 10-3.8 13.8 0zm162-22.9l-48.8-48.8c-15.2-15.2-39.9-15.2-55.2 0l-35.4 35.4c-3.8 3.8-3.8 10 0 13.8l90.2 90.2c3.8 3.8 10 3.8 13.8 0l35.4-35.4c15.2-15.3 15.2-40 0-55.2zM384 346.2V448H64V128h229.8c3.2 0 6.2-1.3 8.5-3.5l40-40c7.6-7.6 2.2-20.5-8.5-20.5H48C21.5 64 0 85.5 0 112v352c0 26.5 21.5 48 48 48h352c26.5 0 48-21.5 48-48V306.2c0-10.7-12.9-16-20.5-8.5l-40 40c-2.2 2.3-3.5 5.3-3.5 8.5z"/></svg></a>
-</div>
-
-<div id="reply" class="hidden">
-    <div id="replied">
-        <p id="repliedText"> </p>
+<div id="chat-page">
+    <div class="sidebar">
+        <h2>Users</h2>
+        <ul id="connectedUsers"></ul>
     </div>
-</div>
 
-
-
-<div class="chat-container hidden" id="chat-page">
-    <div class="users-list">
-        <div class="users-list-container">
-            <h2>Online Users</h2>
-            <ul id="connectedUsers">
-            </ul>
-        </div>
-        <div>
-            <p id="connected-user-fullName"></p>
-            <a class="logout" href="javascript:void(0)" id="logout">Logout</a>
-        </div>
-    </div>
-    <div class="chat-area">
-        <div class="chat-area" id="chat-messages">
-
-        </div>
-
-        <form id="messageForm" name="messageForm" class="hidden">
-            <div class="message-input">
-                <p onclick="toggleEmojiDrawer()">&#128512;</p>
-                <div id="drawer" class="emoji-drawer hidden" style="overflow: scroll">
-                    <div class="emoji" onclick="addEmoji(this.innerHTML)">😀</div>
-                    <div class="emoji" onclick="addEmoji(this.innerHTML)">😃</div>
-                    <div class="emoji" onclick="addEmoji(this.innerHTML)">😄</div>
-                    <div class="emoji" onclick="addEmoji(this.innerHTML)">😁</div>
-                    <div class="emoji" onclick="addEmoji(this.innerHTML)">😆</div>
-                    <div class="emoji" onclick="addEmoji(this.innerHTML)">💤</div>
-                    <div class="emoji" onclick="addEmoji(this.innerHTML)">😈</div>
-                    <div class="emoji" onclick="addEmoji(this.innerHTML)">👿</div>
-                    <div class="emoji" onclick="addEmoji(this.innerHTML)">👹</div>
-                    <div class="emoji" onclick="addEmoji(this.innerHTML)">👺</div>
-                    <div class="emoji" onclick="addEmoji(this.innerHTML)">💀</div>
-                </div>
-                <label for="message">
-                </label>
-                <input autocomplete="off" type="text" id="message"   placeholder="Type your message..." >
-                <button>Send</button>
+    <div id="chatContainer" class="chat-wrapper hidden">
+        <div class="chat-header">
+            <div>
+                <h3>Chatting with: <span id="chat-user">Nobody</span></h3>
+                <small id="user-status">Offline</small>
             </div>
+            <div class="chat-controls">
+                <button id="startCall" title="Start Call">📞</button>
+                <button id="endCall" class="hidden" title="End Call">🔴</button>
+            </div>
+        </div>
+
+        <div id="video-container" class="hidden video-panel">
+            <video id="localVideo" autoplay muted></video>
+            <video id="remoteVideo" autoplay></video>
+            <div class="call-toolbar">
+                <button id="muteToggle" title="Toggle Mute">🔇</button>
+                <button id="cameraToggle" title="Toggle Camera">🎥</button>
+                <span id="call-timer">00:00</span>
+            </div>
+        </div>
+
+        <div id="chat-messages" class="chat-messages"></div>
+
+        <!-- Typing Indicator added here -->
+        <div id="typingIndicator" class="hidden"></div>
+
+        <form id="messageForm" class="message-input">
+            <input type="hidden" id="nickname" name="nickname" th:value="${username}" required>
+            <span id="emoji-toggle" title="Emoji">😊</span>
+            <emoji-picker id="emoji-picker" class="hidden"></emoji-picker>
+            <input type="text" id="message" placeholder="Type a message..." autocomplete="off" />
+            <button id="save" type="submit">Send</button>
+            <button type="button" id="editButton" class="hidden">Edit</button>
         </form>
     </div>
 </div>
-<script >
-    'use strict';
 
-    const usernamePage = document.querySelector('#username-page');
-    const chatPage = document.querySelector('#chat-page');
-    const usernameForm = document.querySelector('#usernameForm');
-    const messageForm = document.querySelector('#messageForm');
-    const messageInput = document.querySelector('#message');
-    const connectingElement = document.querySelector('.connecting');
-    const chatArea = document.querySelector('#chat-messages');
-    const logout = document.querySelector('#logout');
-    const deleting = document.querySelector('#delete');
 
-    let previousMessage="";
-    let previousMessageOfReplied="";
-    let id='';
-    let counterForSender=0;
-    let counterForReceiver=0;
-    let stompClient = null;
-    let nickname = null;
-    let fullName = null;
-    let selectedUserId = null;
-    let deleteMessage="";
-    let deleteM=false;
-    let deleteMReply=false;
-    let senderOfDeletedMessage='';
-    let previousMessageOfDeleted="";
+<script>
+    // Get the current user's nickname from the hidden input field (populated by Thymeleaf)
+    const nickname = document.getElementById("nickname").value;
+    let stompClient = null; // STOMP client for WebSocket communication
+    let selectedUserId = null; // The ID of the user currently chatting with
+    let editingMessageId = null; // ID of the message being edited
+    let blockedUsers = []; // Array of users YOU have blocked
+    let blockedByUsers = []; // Array of users who have blocked YOU (fetched from server)
 
-    function connect(event) {
-        nickname = document.querySelector('#nickname').value.trim();
-        fullName = document.querySelector('#fullName').value.trim();
+    // DOM elements
+    const chatArea = document.getElementById("chat-messages");
+    const messageInput = document.getElementById("message");
+    const messageForm = document.getElementById("messageForm");
+    const editButton = document.getElementById("editButton");
+    const startCallBtn = document.getElementById("startCall");
+    const endCallBtn = document.getElementById("endCall");
+    const videoContainer = document.getElementById("video-container");
+    const localVideo = document.getElementById("localVideo");
+    const remoteVideo = document.getElementById("remoteVideo");
+    const emojiPicker = document.getElementById("emoji-picker");
+    const emojiToggle = document.getElementById("emoji-toggle");
+    const typingIndicator = document.getElementById("typingIndicator"); // New DOM element
 
-        if (nickname && fullName) {
-            usernamePage.classList.add('hidden');
-            chatPage.classList.remove('hidden');
+    // WebRTC variables
+    let localStream; // User's local media stream (video/audio)
+    let peerConnection; // RTCPeerConnection object for peer-to-peer communication
+    const servers = { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] };
 
-            const socket = new SockJS('/ws');
-            stompClient = Stomp.over(socket);
+    // Call timer variables
+    let callStartTime;
+    let timerInterval;
+    let isMuted = false;
+    let isCameraOff = false;
 
-            stompClient.connect({}, onConnected, onError);
-        }
-        event.preventDefault();
-    }
+    // Typing indicator variables
+    let typingTimeout;
+    const TYPING_INDICATOR_TIMEOUT = 3000; // Milliseconds to wait before clearing typing indicator
 
-    function onConnected() {
-        stompClient.subscribe(`/user/${nickname}/queue/messages`, onMessageReceived);
-        stompClient.subscribe(`/user/public`, onMessageReceived);
-        stompClient.send("/app/user.addUser",
-            {},
-            JSON.stringify({username: nickname, firstName: fullName, activity: 'ONLINE'})
-        );
+    // --- Event Listeners and Initial Setup ---
+    document.addEventListener("DOMContentLoaded", () => {
+        connect(); // Establish WebSocket connection
+        loadUsers(); // Load initial list of users
+        document.getElementById("chatContainer").classList.add("hidden"); // Hide chat until a user is selected
+        document.getElementById("save").addEventListener("click", sendMessage); // Send message on click
+        editButton.addEventListener("click", editMessage); // Edit message on click
+        startCallBtn.addEventListener("click", startCall); // Start video call
+        endCallBtn.addEventListener("click", endCall); // End video call
+        document.getElementById("muteToggle").onclick = toggleMute; // Mute/unmute microphone
+        document.getElementById("cameraToggle").onclick = toggleCamera; // Turn camera on/off
 
-        document.querySelector('#connected-user-fullName').textContent = fullName;
-        findAndDisplayConnectedUsers().then();
-    }
-    function addEmoji(emoji) {
-        let inputEle = document.getElementById('message');
-        messageInput.value += emoji;
-    }
-
-    function toggleEmojiDrawer() {
-        let drawer = document.getElementById('drawer');
-
-        if (drawer.classList.contains('hidden')) {
-            drawer.classList.remove('hidden');
-        } else {
-            drawer.classList.add('hidden');
-        }
-    }
-    async function findAndDisplayConnectedUsers() {
-        const connectedUsersResponse = await fetch('/users');
-        let connectedUsers = await connectedUsersResponse.json();
-        connectedUsers = connectedUsers.filter(user => user.username !== nickname);
-        const connectedUsersList = document.getElementById('connectedUsers');
-        connectedUsersList.innerHTML = '';
-
-        connectedUsers.forEach(user => {
-            appendUserElement(user, connectedUsersList);
-            if (connectedUsers.indexOf(user) < connectedUsers.length - 1) {
-                const separator = document.createElement('li');
-                separator.classList.add('separator');
-                connectedUsersList.appendChild(separator);
-            }
+        // Emoji picker functionality
+        emojiToggle.addEventListener("click", (e) => {
+            e.stopPropagation(); // Prevent document click from immediately closing
+            emojiPicker.classList.toggle("hidden");
         });
-    }
 
-    function appendUserElement(user, connectedUsersList) {
-        const listItem = document.createElement('li');
-        listItem.classList.add('user-item');
-        listItem.id = user.username;
-
-        const userImage = document.createElement('img');
-        userImage.src = '/img/sharing-skills.png';
-        userImage.alt = user.firstName;
-
-        const usernameSpan = document.createElement('span');
-        usernameSpan.textContent = user.firstName;
-
-        const receivedMsg = document.createElement('span');
-        receivedMsg.textContent = '0';
-        receivedMsg.classList.add('nbr-msg', 'hidden');
-
-        listItem.appendChild(userImage);
-        listItem.appendChild(usernameSpan);
-        listItem.appendChild(receivedMsg);
-
-        listItem.addEventListener('click', userItemClick);
-
-        connectedUsersList.appendChild(listItem);
-    }
-
-    function userItemClick(event) {
-        document.querySelectorAll('.user-item').forEach(item => {
-            item.classList.remove('active');
+        emojiPicker.addEventListener("emoji-click", (event) => {
+            messageInput.value += event.detail.unicode;
+            emojiPicker.classList.add("hidden"); // Close after selection
+            messageInput.focus(); // Keep focus on input
         });
-        messageForm.classList.remove('hidden');
 
-        const clickedUser = event.currentTarget;
-        clickedUser.classList.add('active');
-
-        if(chatArea.children.length===0){
-            localStorage.setItem("counterForSender","");
-            localStorage.setItem("counterForReceiver","");
-        }
-        selectedUserId = clickedUser.getAttribute('id');
-        fetchAndDisplayUserChat().then();
-
-        const nbrMsg = clickedUser.querySelector('.nbr-msg');
-        nbrMsg.classList.add('hidden');
-        nbrMsg.textContent = '0';
-
-        document.querySelector('#reply').classList.add('hidden');
-
-    }
-    let timeout;
-    let reply=false;
-    let edit=false;
-    let editedMessageId='';
-    let messageSelected1="";
-    function displayMessage(sender, content) {
-        const messageContainer = document.createElement('div');
-        messageContainer.classList.add('message');
-        if (sender === nickname) {
-            messageContainer.classList.add('sender');
-            counterForSender++;
-            id=sender+" "+counterForSender;
-            const htmlSpanElement = document.createElement("span");
-             htmlSpanElement.appendChild(document.createTextNode("Sent"));
-             chatArea.appendChild(htmlSpanElement);
-        } else {
-            messageContainer.classList.add('receiver');
-            counterForReceiver++;
-            id=sender+" "+counterForReceiver;
-        }
-        const message = document.createElement('p');
-        message.id=id;
-        message.textContent = content;
-        message.addEventListener('mouseenter' ,function() {
-            function f() {
-                messageContainer.appendChild(document.querySelector('#navigation'));
-                document.querySelector('#navigation').classList.toggle("hidden",false);
+        // Close emoji picker and any open user settings menu if clicked outside
+        document.addEventListener("click", (e) => {
+            if (!emojiPicker.contains(e.target) && e.target !== emojiToggle) {
+                emojiPicker.classList.add("hidden");
             }
-            timeout = setTimeout(f, 2000);
-            document.getElementById('replyToMessage').addEventListener('click',function (){
-                let htmlSpanElement = document.createElement("span");
-                htmlSpanElement.appendChild(document.createTextNode("Reply to @"+sender));
-                messageForm.appendChild(htmlSpanElement);
-               messageSelected1=message.id;
-                reply=true;
-            });
-            document.querySelector('#navigation').classList.toggle("hidden",true);
-        })
-        message.addEventListener('mouseleave',function () {
-            clearTimeout(timeout);
-        })
-            previousMessage=localStorage.getItem("id");
-            messageContainer.appendChild(message);
-            chatArea.appendChild(messageContainer);
-    }
-    let replyToReply;
-    let messageSelected="";
-    function replyToMessage(sender,content,previousMesg) {
-        const prevoiusMessageId=id;
-        const repliedMessageContainer = document.createElement("div");
-        repliedMessageContainer.classList.add('message');
-        const  repliedMessage=document.createElement("div");
-        const htmlParagraphElement1 = document.createElement("p");
-        const htmlParagraphElement2 = document.createElement("p");
-        const htmlParagraphElement = document.createElement("p");
-        htmlParagraphElement.textContent=content;
-        const text = document.createTextNode(`${"Reply to @"+sender}`);
-        htmlParagraphElement1.appendChild(text);
-        htmlParagraphElement2.textContent=previousMesg;
-        if(sender === nickname){
-            repliedMessageContainer.classList.add('sender');
-            counterForSender++;
-            id=sender+" "+counterForSender;
-        }else{
-            repliedMessageContainer.classList.add('receiver');
-            counterForReceiver++;
-            id=sender+" "+counterForReceiver;
-        }
-        repliedMessage.id=id
-        repliedMessage.appendChild(htmlParagraphElement1);
-        repliedMessage.appendChild(htmlParagraphElement2);
-        repliedMessage.appendChild(htmlParagraphElement);
-        content=htmlParagraphElement+"\n"+htmlParagraphElement2+"\n"+htmlParagraphElement1;
-        repliedMessage.addEventListener('mouseenter' ,function() {
-            function f() {
-                repliedMessageContainer.appendChild(document.querySelector('#navigation'));
-                document.querySelector('#navigation').classList.toggle("hidden",false);
-            }
-            timeout = setTimeout(f, 2000);
-            document.getElementById('replyToMessage').addEventListener('click',function (){
-                let htmlSpanElement = document.createElement("span");
-                htmlSpanElement.appendChild(document.createTextNode("Reply to @"+sender));
-                messageForm.appendChild(htmlSpanElement);
-                messageSelected=repliedMessage.id;
-                replyToReply=true;
-            });
-            document.querySelector('#navigation').classList.toggle("hidden",true);
-        })
-        repliedMessage.addEventListener('mouseleave',function () {
-            clearTimeout(timeout);
-        })
-        repliedMessageContainer.appendChild(repliedMessage);
-        chatArea.appendChild(repliedMessageContainer);
-    }
-    async function fetchAndDisplayUserChat() {
-        const userChatResponse = await fetch(`/messages/${nickname}/${selectedUserId}`);
-        const userChat = await userChatResponse.json();
-        chatArea.innerHTML = '';
-        userChat.forEach(chat => {
-            if (chat.previousMessage === null) {
-                displayMessage(chat.sender, chat.content);
-            }else if(chat.indicatorForDeletion===true){
-                displayMessage(chat.sender,"The message was removed")
-            }
-            else{
-                replyToMessage(chat.sender,chat.content,chat.previousMessage);
-            }
-        })
-        chatArea.scrollTop = chatArea.scrollHeight;
-    }
-
-
-    function onError() {
-        connectingElement.textContent = 'Could not connect to WebSocket server. Please refresh this page to try again!';
-        connectingElement.style.color = 'red';
-    }
-
-    function sendMessage(event) {
-        const deleteMessage1=deleteMessage;
-        const messageReplied1=messageSelected1;
-        const messageReplied=messageSelected;
-        const messageContent = messageInput.value.trim();
-                if (reply === true) {
-                    const chatMessageReply = {
-                        sender: nickname,
-                        receiver: selectedUserId,
-                        repliedPersonName: "Reply to @" + selectedUserId,
-                        previousMessage: document.getElementById(messageReplied1).textContent,
-                        content: messageInput.value.trim(),
-                        indicatorForDeletion: false,
-                        timestamp: new Date()
-                    };
-                    stompClient.send("/app/chat", {}, JSON.stringify(chatMessageReply));
-                    replyToMessage(nickname, messageInput.value.trim(), document.getElementById(messageReplied1).textContent);
-                } else if (replyToReply === true) {
-                    const chatMessageReply = {
-                        sender: nickname,
-                        receiver: selectedUserId,
-                        repliedPersonName: "Reply to @" + selectedUserId,
-                        previousMessage: document.getElementById(messageReplied).textContent,
-                        content: messageInput.value.trim(),
-                        indicatorForDeletion: false,
-                        timestamp: new Date()
-                    };
-                    stompClient.send("/app/chat", {}, JSON.stringify(chatMessageReply));
-                    replyToMessage(nickname, messageInput.value.trim(), document.getElementById(messageReplied).textContent);
-                }else {
-                    const chatMessage = {
-                        sender: nickname,
-                        receiver: selectedUserId,
-                        content: messageInput.value.trim(),
-                        timestamp: new Date()
-                    };
-                    stompClient.send("/app/chat", {}, JSON.stringify(chatMessage));
-                    displayMessage(nickname, messageInput.value.trim());
+            // Close any open user settings menus
+            document.querySelectorAll('.user-settings-menu:not(.hidden)').forEach(menu => {
+                if (!menu.contains(e.target) && !menu.previousElementSibling.contains(e.target)) {
+                    menu.classList.add('hidden');
                 }
-             messageInput.value = '';
-            chatArea.scrollTop = chatArea.scrollHeight;
-            event.preventDefault();
+            });
+        });
+
+        // Typing indicator event listeners
+        messageInput.addEventListener('input', handleTyping);
+        messageInput.addEventListener('blur', () => sendTypingStatus(false)); // Send false if input loses focus
+
+        // Request Notification permission
+        requestNotificationPermission();
+    });
+
+    // --- WebSocket Connection and STOMP Subscriptions ---
+    function connect() {
+        const socket = new SockJS("/ws");
+        stompClient = Stomp.over(socket);
+
+        stompClient.connect({}, (frame) => {
+            console.log("✅ Connected to WebSocket:", frame);
+
+            stompClient.subscribe(`/user/${nickname}/queue/messages`, (message) => {
+                const msg = JSON.parse(message.body);
+                // Only render if message is for the currently selected chat or if it's a notification
+                if ((msg.sender === selectedUserId || msg.receiver === selectedUserId || msg.sender === nickname)) {
+                    // Check block status before rendering - this check is redundant if backend handles it
+                    // but good for client-side filtering of already-sent messages
+                    if (!blockedUsers.includes(msg.sender) && !blockedByUsers.includes(msg.sender)) {
+                        renderMessage(msg);
+                        // Hide typing indicator if a message is received from the selected user
+                        if (msg.sender === selectedUserId) {
+                            typingIndicator.classList.add('hidden');
+                            clearTimeout(typingTimeout);
+                        }
+                    } else {
+                        console.warn(`Message from/to blocked user ${msg.sender} ignored by client-side.`);
+                    }
+                }
+
+                // Show browser notification if the message is new and not from self,
+                // and the current tab is not focused or not chatting with the sender.
+                if (msg.sender !== nickname && (!document.hasFocus() || selectedUserId !== msg.sender)) {
+                    showNotification(msg.sender, msg.content);
+                }
+            });
+
+            stompClient.subscribe(`/user/${nickname}/queue/errors`, (message) => {
+                const errorMsg = message.body;
+                alert(`Error: ${errorMsg}`);
+                console.error("Server Error:", errorMsg);
+            });
+
+            stompClient.subscribe(`/topic/public`, (message) => {
+                console.log("Received public topic update:", message.body);
+                loadUsers(); // Reload users to update online/offline status and block status
+            });
+
+            // Subscribe to typing indicator messages
+            stompClient.subscribe(`/user/${nickname}/queue/typing`, (message) => {
+                const { from, isTyping } = JSON.parse(message.body);
+                // Only show typing indicator if the message is from the currently selected user
+                if (from === selectedUserId) {
+                    if (isTyping) {
+                        typingIndicator.textContent = `${from} is typing...`;
+                        typingIndicator.classList.remove('hidden');
+                        // Clear any previous timeout and set a new one to hide the indicator
+                        clearTimeout(typingTimeout);
+                        typingTimeout = setTimeout(() => {
+                            typingIndicator.classList.add('hidden');
+                        }, TYPING_INDICATOR_TIMEOUT);
+                    } else {
+                        typingIndicator.classList.add('hidden');
+                        clearTimeout(typingTimeout);
+                    }
+                }
+            });
+
+
+            // Subscribe to WebRTC signaling messages
+            stompClient.subscribe(`/user/${nickname}/queue/call/offer`, async message => {
+                const { offer, from } = JSON.parse(message.body);
+                console.log(`Received call offer from ${from}`);
+
+                // If already in a call, reject the incoming call
+                if (peerConnection) {
+                    stompClient.send("/app/call/reject", {}, JSON.stringify({ to: from, from: nickname, reason: "busy" }));
+                    alert(`Call from ${from} rejected: already in call.`);
+                    return;
+                }
+
+                // Automatically select the caller in the UI if not already selected
+                if (selectedUserId !== from) {
+                    // Find the list item for the caller and simulate a click
+                    const callerLi = document.querySelector(`#connectedUsers li[data-username="${from}"]`);
+                    if (callerLi) {
+                        selectUser(from, callerLi);
+                    } else {
+                        // If caller not in list (e.g., new user), just update header
+                        document.getElementById("chat-user").textContent = from;
+                        document.getElementById("chatContainer").classList.remove("hidden");
+                    }
+                }
+
+
+                // Initialize RTCPeerConnection for the incoming call
+                peerConnection = new RTCPeerConnection(servers);
+
+                // Set up ICE candidate handling
+                peerConnection.onicecandidate = e => {
+                    if (e.candidate) {
+                        stompClient.send("/app/call/ice", {}, JSON.stringify({
+                            candidate: e.candidate,
+                            to: from,
+                            from: nickname
+                        }));
+                    }
+                };
+
+                // Set up remote stream handling
+                peerConnection.ontrack = e => {
+                    remoteVideo.srcObject = e.streams[0];
+                };
+
+                // Get local media stream (camera and microphone)
+                try {
+                    localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+                    localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
+                    localVideo.srcObject = localStream;
+                } catch (err) {
+                    console.error("Error getting local media for incoming call:", err);
+                    alert("Failed to access camera/microphone for incoming call. Please check permissions.");
+                    endCall(); // Clean up if media access fails
+                    return;
+                }
+
+
+                // Set the received offer as remote description
+                await peerConnection.setRemoteDescription(new RTCSessionDescription(offer));
+                // Create and set local answer
+                const answer = await peerConnection.createAnswer();
+                await peerConnection.setLocalDescription(answer);
+
+                // Send the answer back to the caller
+                stompClient.send("/app/call/answer", {}, JSON.stringify({
+                    answer,
+                    to: from,
+                    from: nickname
+                }));
+
+                videoContainer.classList.remove("hidden");
+                endCallBtn.classList.remove("hidden");
+                startCallBtn.classList.add("hidden");
+                startTimer(); // Start call timer
+                alert(`Incoming call from ${from}! Accepting...`);
+            });
+
+            stompClient.subscribe(`/user/${nickname}/queue/call/answer`, async message => {
+                const { answer } = JSON.parse(message.body);
+                console.log("Received call answer.");
+                if (peerConnection) {
+                    await peerConnection.setRemoteDescription(new RTCSessionDescription(answer));
+                }
+            });
+
+            stompClient.subscribe(`/user/${nickname}/queue/call/ice`, async message => {
+                const { candidate } = JSON.parse(message.body);
+                console.log("Received ICE candidate.");
+                if (peerConnection && candidate) {
+                    try {
+                        await peerConnection.addIceCandidate(new RTCIceCandidate(candidate));
+                    } catch (e) {
+                        console.error("Error adding received ICE candidate:", e);
+                    }
+                }
+            });
+
+            stompClient.subscribe(`/user/${nickname}/queue/call/end`, () => {
+                console.log("Received call end signal.");
+                alert("Call ended by other party.");
+                endCall(); // Simulate click to end call
+            });
+
+            stompClient.subscribe(`/user/${nickname}/queue/call/reject`, (message) => {
+                const { from, reason } = JSON.parse(message.body);
+                console.log(`Call to ${from} rejected. Reason: ${reason}`);
+                alert(`${from} is currently unavailable or rejected your call. Reason: ${reason || 'Unknown'}`);
+                // Clean up local call state if needed
+                endCall(); // Use the endCall function to clean up
+            });
+
+            // Send user join message to the server
+            stompClient.send("/app/user.addUser", {}, JSON.stringify({ username: nickname }));
+
+        }, (error) => {
+            console.error("❌ WebSocket connection error:", error);
+            alert("Failed to connect to chat server. Please refresh.");
+        });
+    }
+
+    // --- User List and Selection ---
+    async function loadUsers() {
+        const currentNickname = nickname;
+
+        try {
+            // Fetch block status first
+            const blockStatusUrl = `/${currentNickname}/block-status`;
+            const resBlock = await fetch(blockStatusUrl);
+            if (!resBlock.ok) {
+                const errorText = await resBlock.text();
+                throw new Error(`HTTP error fetching block status! Status: ${resBlock.status}, Response: ${errorText}`);
+            }
+            const blockData = await resBlock.json();
+            blockedUsers = Array.isArray(blockData.blocked) ? blockData.blocked : [];
+            blockedByUsers = Array.isArray(blockData.blockedBy) ? blockData.blockedBy : [];
+            console.log("Blocked by me:", blockedUsers);
+            console.log("Blocked me:", blockedByUsers);
+
+            // Fetch all users
+            const resUsers = await fetch("/users");
+            if (!resUsers.ok) {
+                const errorText = await resUsers.text();
+                throw new Error(`HTTP error fetching users! Status: ${resUsers.status}, Response: ${errorText}`);
+            }
+            const users = await resUsers.json();
+
+            const userList = document.getElementById("connectedUsers");
+            userList.innerHTML = ""; // Clear existing list
+
+            users.forEach(user => {
+                if (user.username !== currentNickname) {
+                    const li = document.createElement("li");
+                    const usernameSpan = document.createElement("span");
+                    usernameSpan.textContent = user.username + (user.online ? " (Online)" : " (Offline)");
+                    usernameSpan.style.flexGrow = '1'; // Allow username to take available space
+                    usernameSpan.style.marginRight = '10px'; // Space before settings icon
+
+                    li.dataset.username = user.username; // Store username for selection
+
+                    const isBlockedByUser = blockedUsers.includes(user.username);
+                    const isBlockedByThem = blockedByUsers.includes(user.username);
+
+                    if (isBlockedByUser || isBlockedByThem) {
+                        li.classList.add("blocked");
+                        li.title = `Chat disabled (${isBlockedByUser ? "You blocked them" : "They blocked you"})`;
+                    } else if (user.online) {
+                        li.title = "Online";
+                    } else {
+                        li.title = "Offline";
+                    }
+
+                    // Add click listener to the username part to select chat
+                    usernameSpan.onclick = () => selectUser(user.username, li);
+                    li.appendChild(usernameSpan);
+
+                    // --- Per-User Settings Container ---
+                    const settingsContainer = document.createElement("div");
+                    settingsContainer.className = "user-settings-container";
+
+                    const settingsToggle = document.createElement("button");
+                    settingsToggle.className = "user-settings-toggle";
+                    settingsToggle.innerHTML = '&#x22EE;'; // Vertical ellipsis icon
+                    settingsToggle.title = `Settings for ${user.username}`;
+                    settingsToggle.onclick = (e) => toggleUserSettingMenu(e, user.username, settingsToggle);
+                    settingsContainer.appendChild(settingsToggle);
+
+                    const settingsMenu = document.createElement("div");
+                    settingsMenu.className = "user-settings-menu hidden";
+                    settingsMenu.dataset.username = user.username; // Link menu to user
+
+                    // Block Button
+                    const blockBtn = document.createElement("button");
+                    blockBtn.textContent = "Block";
+                    blockBtn.onclick = (e) => {
+                        e.stopPropagation(); // Prevent li click
+                        blockUser(user.username);
+                        settingsMenu.classList.add('hidden');
+                    };
+                    blockBtn.disabled = isBlockedByUser; // Disable if already blocked by current user
+                    settingsMenu.appendChild(blockBtn);
+
+                    // Unblock Button
+                    const unblockBtn = document.createElement("button");
+                    unblockBtn.textContent = "Unblock";
+                    unblockBtn.onclick = (e) => {
+                        e.stopPropagation(); // Prevent li click
+                        unblockUser(user.username);
+                        settingsMenu.classList.add('hidden');
+                    };
+                    unblockBtn.disabled = !isBlockedByUser; // Disable if not blocked by current user
+                    settingsMenu.appendChild(unblockBtn);
+
+                    // Restrict Button (conceptual)
+                    const restrictBtn = document.createElement("button");
+                    restrictBtn.textContent = "Restrict (Conceptual)";
+                    restrictBtn.onclick = (e) => {
+                        e.stopPropagation(); // Prevent li click
+                        restrictUser(user.username);
+                        settingsMenu.classList.add('hidden');
+                    };
+                    settingsMenu.appendChild(restrictBtn);
+
+
+                    settingsContainer.appendChild(settingsMenu);
+                    li.appendChild(settingsContainer); // Add settings container to the list item
+
+                    userList.appendChild(li);
+                }
+            });
+        }
+        catch (error) {
+            console.error("Error loading users or block status:", error);
+            alert(`Failed to load user list: ${error.message}. Please check your connection and server logs.`);
+        }
+    }
+
+    // Function to toggle a specific user's settings menu
+    function toggleUserSettingMenu(event, username, toggleButton) {
+        event.stopPropagation(); // Prevent the li.onclick from firing
+
+        // Close any other open menus first
+        document.querySelectorAll('.user-settings-menu:not(.hidden)').forEach(menu => {
+            if (menu.dataset.username !== username) {
+                menu.classList.add('hidden');
+            }
+        });
+
+        const menu = toggleButton.nextElementSibling; // The menu is the next sibling of the toggle button
+        if (menu) {
+            menu.classList.toggle('hidden');
+            // Update button states when opening the menu
+            const isBlockedByUser = blockedUsers.includes(username);
+            menu.querySelector('button:nth-child(1)').disabled = isBlockedByUser; // Block button
+            menu.querySelector('button:nth-child(2)').disabled = !isBlockedByUser; // Unblock button
+        }
+    }
+
+
+    async function selectUser(userId, liElement) {
+        selectedUserId = userId;
+        typingIndicator.classList.add('hidden'); // Hide typing indicator when changing chat
+
+        // Update UI for selected user
+        document.querySelectorAll("#connectedUsers li").forEach(li => li.classList.remove("active"));
+        liElement.classList.add("active");
+        document.getElementById("chat-user").textContent = userId;
+        document.getElementById("chat-messages").innerHTML = ""; // Clear existing messages
+        document.getElementById("chatContainer").classList.remove("hidden"); // Show chat container
+
+        // Check block status for the selected user
+        const isBlocked = blockedUsers.includes(userId);
+        const isBlockedBy = blockedByUsers.includes(userId);
+
+        // Adjust input and call button visibility based on block status
+        if (isBlocked || isBlockedBy) {
+            document.getElementById("chat-messages").innerHTML = `
+                <div class="chat-disabled-message">
+                    ❌ You cannot chat with <strong>${userId}</strong>.
+                    ${isBlocked ? "You have blocked them." : "They have blocked you."}
+                </div>
+            `;
+            messageForm.classList.add("hidden"); // Hide message input form
+            startCallBtn.classList.add("hidden"); // Hide call button
+        } else {
+            messageForm.classList.remove("hidden"); // Show message input form
+            startCallBtn.classList.remove("hidden"); // Show call button
         }
 
-    async function onMessageReceived(payload) {
-        await findAndDisplayConnectedUsers();
-        console.log('Message received', payload);
-        const message = JSON.parse(payload.body);
-        if (selectedUserId && selectedUserId === message.sender) {
-            if(reply === true||replyToReply===true){
-                replyToMessage(message.sender,message.content,message.previousMessage);
-            }else if(deleteM===true){
-                message.content="The message was removed"
-                displayMessage(message.sender,message.content);
+        // Fetch and render chat history
+        try {
+            const res = await fetch(`/messages/${nickname}/${selectedUserId}`);
+            if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+
+            const contentType = res.headers.get("content-type");
+            if (contentType && contentType.includes("application/json")) {
+                const messages = await res.json();
+                messages.forEach(renderMessage);
+                chatArea.scrollTop = chatArea.scrollHeight; // Scroll to bottom
+            } else {
+                const text = await res.text();
+                console.error("Expected JSON but got:", text);
+                alert("Failed to load chat messages: invalid server response");
             }
-            else{
-                displayMessage(message.sender, message.content);
-            }
-            chatArea.scrollTop = chatArea.scrollHeight;
+        } catch (err) {
+            console.error("Error fetching messages:", err);
+            alert("Error fetching chat messages. Check console for details.");
+        }
+    }
+
+    // --- User Relation Actions (Block/Unblock/Restrict) ---
+    async function blockUser(targetUsername) {
+        if (!targetUsername) {
+            return alert("No user specified to block.");
+        }
+        if (targetUsername === nickname) {
+            return alert("You cannot block yourself.");
         }
 
+        try {
+            const blockUrl = `/block/${nickname}/${targetUsername}`;
+            const response = await fetch(blockUrl, { method: "POST" });
+
+            if (response.ok) {
+                alert(`${targetUsername} has been blocked.`);
+                await loadUsers(); // Reload users to update block status visually
+                // Re-select user if currently chatting with them to update chat area content and input visibility
+                if (selectedUserId === targetUsername) {
+                    selectUser(selectedUserId, document.querySelector(`li[data-username="${selectedUserId}"]`));
+                }
+            } else {
+                const errorText = await response.text();
+                alert(`Failed to block user! ${errorText}`);
+                console.error("Block user error:", response.status, errorText);
+            }
+        } catch (error) {
+            console.error("Network error blocking user:", error);
+            alert("An error occurred while trying to block the user. Check console for details.");
+        }
+    }
+
+    async function unblockUser(targetUsername) {
+        if (!targetUsername) {
+            return alert("No user specified to unblock.");
+        }
+
+        try {
+            const unblockUrl = `/unblock/${nickname}/${targetUsername}`;
+            const response = await fetch(unblockUrl, { method: "POST" });
+
+            if (response.ok) {
+                alert(`${targetUsername} has been unblocked.`);
+                await loadUsers(); // Reload users to update block status visually
+                // Re-select user if currently chatting with them to update chat area content and input visibility
+                if (selectedUserId === targetUsername) {
+                    selectUser(selectedUserId, document.querySelector(`li[data-username="${selectedUserId}"]`));
+                }
+            } else {
+                const errorText = await response.text();
+                alert(`Failed to unblock user! ${errorText}`);
+                console.error("Unblock user error:", response.status, errorText);
+            }
+        } catch (error) {
+            console.error("Network error unblocking user:", error);
+            alert("An error occurred while trying to unblock the user. Check console for details.");
+        }
+    }
+
+    async function restrictUser(targetUsername) {
+        if (!targetUsername) {
+            return alert("No user specified to restrict.");
+        }
+        if (targetUsername === nickname) {
+            return alert("You cannot restrict yourself.");
+        }
+
+        try {
+            const response = await fetch(`/restrict/${nickname}/${targetUsername}`, { method: "POST" });
+            if (response.ok) {
+                alert(`${targetUsername} has been restricted. (This is a conceptual feature for now.)`);
+            } else {
+                const errorText = await response.text();
+                alert(`Failed to restrict user: ${errorText}`);
+            }
+        } catch (error) {
+            console.error("Error restricting user:", error);
+            alert("An error occurred while trying to restrict the user.");
+        }
+    }
+
+    // --- Chat Message Handling (Send, Edit, Delete, Render) ---
+    function sendMessage(e) {
+        e.preventDefault(); // Prevent default form submission (page reload)
+
+        // Do not send if blocked or if in editing mode
+        if (blockedUsers.includes(selectedUserId) || blockedByUsers.includes(selectedUserId)) {
+            alert("You cannot send messages to this user because of block status.");
+            return;
+        }
+        if (editingMessageId) { // If editingMessageId is set, it means we should call editMessage() instead
+            editMessage();
+            return;
+        }
+
+        const content = messageInput.value.trim();
+        if (!content || !selectedUserId) return; // Don't send empty messages or if no user is selected
+
+        const message = {
+            id: Date.now().toString(), // Client-generated unique ID for optimistic update
+            sender: nickname,
+            receiver: selectedUserId,
+            content: content,
+            edited: false,
+            timestamp: new Date().toISOString() // Add client-side timestamp
+        };
+
+        // Send message via STOMP
+        stompClient.send("/app/chat", {}, JSON.stringify(message));
+        renderMessage(message); // Optimistically render the message immediately
+        messageInput.value = ""; // Clear input field
+        sendTypingStatus(false); // Stop typing after sending message
+    }
+
+    function editMessage() {
+        const content = messageInput.value.trim();
+        if (!content || !editingMessageId || !selectedUserId) return;
+
+        const message = {
+            id: editingMessageId,
+            sender: nickname, // Sender is always the current user for editing their own message
+            receiver: selectedUserId, // Receiver remains the same
+            content: content,
+            edited: true,
+            timestamp: new Date().toISOString() // Update timestamp on edit
+        };
+
+        // Send edit request via STOMP
+        stompClient.send("/app/edit", {}, JSON.stringify(message));
+
+        // Optimistically update the existing message in the UI
+        const existingMessageElement = document.querySelector(`.message[data-id="${editingMessageId}"] p`);
+        if (existingMessageElement) {
+            existingMessageElement.textContent = message.content + " (edited)";
+        }
+
+        // Reset editing state and UI
+        editingMessageId = null;
+        messageInput.value = "";
+        editButton.classList.add("hidden"); // Hide edit button
+        document.getElementById("save").style.display = "block"; // Show send button again
+        sendTypingStatus(false); // Stop typing after editing
+    }
+
+    function renderMessage(msg) {
+        // Check if message already exists (for updates/edits/deletions)
+        const existing = document.querySelector(`.message[data-id="${msg.id}"]`);
+
+        if (existing) {
+            const p = existing.querySelector("p");
+            if (p) {
+                p.textContent = msg.content + (msg.edited ? " (edited)" : "");
+            }
+            if (msg.indicatorForDeletion) { // Handle soft deletion (using indicatorForDeletion from backend)
+                const actions = existing.querySelector(".message-options");
+                if (actions) actions.remove(); // Remove options if deleted
+                existing.style.opacity = '0.6';
+                existing.style.fontStyle = 'italic';
+                p.textContent = "This message was deleted."; // Ensure content is updated
+            }
+
+            // Update timestamp for existing messages (e.g., on edit)
+            const timestampSpan = existing.querySelector(".message-timestamp");
+            if (timestampSpan && msg.timestamp) {
+                timestampSpan.textContent = formatTimestamp(msg.timestamp);
+            }
+
+            // If the message being rendered is the one currently being edited, reset editing UI
+            if (editingMessageId === msg.id) {
+                editingMessageId = null;
+                messageInput.value = "";
+                editButton.classList.add("hidden");
+                document.getElementById("save").style.display = "block";
+            }
+            chatArea.scrollTop = chatArea.scrollHeight; // Scroll to bottom
+            return;
+        }
+
+        // Create new message element
+        const container = document.createElement("div");
+        container.className = `message ${msg.sender === nickname ? "sender" : "receiver"}`;
+        container.dataset.id = msg.id; // Store message ID for editing/deleting
+
+        const p = document.createElement("p");
+        p.textContent = msg.content + (msg.edited ? " (edited)" : "");
+        container.appendChild(p);
+
+        // Add timestamp
+        const timestampSpan = document.createElement("span");
+        timestampSpan.className = "message-timestamp";
+        timestampSpan.textContent = formatTimestamp(msg.timestamp);
+        container.appendChild(timestampSpan);
+
+
+        // Add options (edit/delete) only for messages sent by the current user
+        if (msg.sender === nickname && !msg.indicatorForDeletion) { // Check indicatorForDeletion
+            const actions = document.createElement("div");
+            actions.className = "message-options";
+
+            // Edit button
+            const edit = document.createElement("span");
+            edit.innerHTML = '<i class="fas fa-pencil-alt"></i>'; // Font Awesome icon
+            edit.title = "Edit";
+            edit.onclick = () => {
+                document.getElementById("save").style.display = "none"; // Hide send button
+                messageInput.value = msg.content; // Populate input with message content
+                editingMessageId = msg.id; // Set message ID for editing
+                editButton.classList.remove("hidden"); // Show edit button
+                messageInput.focus(); // Focus on input field
+            };
+
+            // Delete button
+            const del = document.createElement("span");
+            del.innerHTML = '<i class="fas fa-trash-alt"></i>'; // Font Awesome icon
+            del.title = "Delete";
+            del.classList.add("delete-icon"); // Add a class for specific styling
+            del.onclick = () => {
+                if (confirm("Are you sure you want to delete this message?")) {
+                    // Send delete request via STOMP
+                    stompClient.send("/app/delete", {}, JSON.stringify({
+                        id: msg.id,
+                        sender: nickname,
+                        receiver: selectedUserId // Pass receiver to target the specific message in DB
+                    }));
+                    // Optimistically update UI as deleted
+                    p.textContent = "This message was deleted.";
+                    actions.remove(); // Remove options after deletion
+                    container.style.opacity = '0.6';
+                    container.style.fontStyle = 'italic';
+                }
+            };
+
+            actions.appendChild(edit);
+            actions.appendChild(del);
+            container.appendChild(actions);
+        }
+
+        chatArea.appendChild(container);
+        chatArea.scrollTop = chatArea.scrollHeight; // Keep scrolled to bottom
+    }
+
+    function formatTimestamp(isoString) {
+        if (!isoString) return '';
+        const date = new Date(isoString);
+        // Format as HH:MM AM/PM
+        return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    }
+
+    // --- Typing Indicator Functions ---
+    let isTyping = false;
+    let lastTypingTime;
+
+    function handleTyping() {
+        if (!selectedUserId) return; // Only send typing status if a chat is selected
+
+        if (!isTyping) {
+            isTyping = true;
+            sendTypingStatus(true);
+        }
+        lastTypingTime = new Date().getTime();
+        setTimeout(() => {
+            const currentTime = new Date().getTime();
+            const timeDifference = currentTime - lastTypingTime;
+            if (timeDifference >= TYPING_INDICATOR_TIMEOUT - 50 && isTyping) { // Small buffer
+                isTyping = false;
+                sendTypingStatus(false);
+            }
+        }, TYPING_INDICATOR_TIMEOUT);
+    }
+
+    function sendTypingStatus(status) {
+        if (!stompClient || !selectedUserId) return;
+        stompClient.send("/app/typing", {}, JSON.stringify({
+            from: nickname,
+            to: selectedUserId,
+            isTyping: status
+        }));
+    }
+
+
+    // --- WebRTC Call Functionality ---
+    async function startCall() {
+        if (!selectedUserId) {
+            alert("Please select a user to call first.");
+            return;
+        }
+        // The backend handles blocking for calls, but client-side check can provide faster feedback
+        if (blockedUsers.includes(selectedUserId) || blockedByUsers.includes(selectedUserId)) {
+            alert("You cannot call a user who is blocked or has blocked you.");
+            return;
+        }
+        if (peerConnection) { // Prevent multiple calls
+            alert("You are already in a call.");
+            return;
+        }
+
+        try {
+            // Request local media devices (camera and microphone)
+            localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+            localVideo.srcObject = localStream; // Display local video stream
+
+            // Create a new RTCPeerConnection
+            peerConnection = new RTCPeerConnection(servers);
+
+            // Add local media tracks to the peer connection
+            localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
+
+            // Event listener for when ICE candidates are generated (network information)
+            peerConnection.onicecandidate = e => {
+                if (e.candidate) {
+                    // Send the ICE candidate to the other peer via the signaling server
+                    stompClient.send("/app/call/ice", {}, JSON.stringify({
+                        candidate: e.candidate,
+                        to: selectedUserId,
+                        from: nickname
+                    }));
+                }
+            };
+
+            // Event listener for when a remote media track is received
+            peerConnection.ontrack = e => {
+                remoteVideo.srcObject = e.streams[0]; // Display the remote video stream
+            };
+
+            // Create and set the local SDP offer
+            const offer = await peerConnection.createOffer();
+            await peerConnection.setLocalDescription(offer);
+
+            // Send the offer to the selected user via the signaling server
+            stompClient.send("/app/call/offer", {}, JSON.stringify({
+                offer,
+                to: selectedUserId,
+                from: nickname
+            }));
+
+            startTimer(); // Start call timer
+            videoContainer.classList.remove("hidden"); // Show video panel
+            endCallBtn.classList.remove("hidden"); // Show end call button
+            startCallBtn.classList.add("hidden"); // Hide start call button
+            alert(`Calling ${selectedUserId}...`);
+        } catch (error) {
+            console.error("Error starting call:", error);
+            alert("Failed to start call. Please check your camera/microphone permissions and try again.");
+            // Clean up if call initiation fails
+            endCall();
+        }
+    }
+
+    function endCall() {
+        if (peerConnection) {
+            peerConnection.close(); // Close the WebRTC connection
+            peerConnection = null;
+        }
+        if (localStream) {
+            localStream.getTracks().forEach(track => track.stop()); // Stop local media tracks
+            localStream = null; // Clear stream reference
+        }
+        localVideo.srcObject = null; // Clear video elements
+        remoteVideo.srcObject = null;
+
+        videoContainer.classList.add("hidden"); // Hide video panel
+        endCallBtn.classList.add("hidden"); // Hide end call button
+        startCallBtn.classList.remove("hidden"); // Show start call button
+        stopTimer(); // Stop and reset timer
+
+        // Notify the other user that the call has ended (if a user was selected)
         if (selectedUserId) {
-            document.querySelector(`#${selectedUserId}`).classList.add('active');
-        } else {
-            messageForm.classList.add('hidden');
-        }
-
-        const notifiedUser = document.querySelector(`#${message.sender}`);
-        if (notifiedUser && !notifiedUser.classList.contains('active')) {
-            const nbrMsg = notifiedUser.querySelector('.nbr-msg');
-            nbrMsg.classList.remove('hidden');
-            nbrMsg.textContent = '';
+            stompClient.send("/app/call/end", {}, JSON.stringify({
+                to: selectedUserId,
+                from: nickname
+            }));
         }
     }
 
-    function onDelete(){
-        stompClient.send("/app/delete",{},
-            JSON.stringify(
-                {
-                    sender:nickname,
-                    receiver:selectedUserId,
-                    content:"dmdmdmd",
-                    timestamp:new Date()
+    // --- Call Toolbar Controls (Mute/Camera/Timer) ---
+    function startTimer() {
+        callStartTime = Date.now();
+        timerInterval = setInterval(() => {
+            const elapsed = Math.floor((Date.now() - callStartTime) / 1000);
+            const mins = String(Math.floor(elapsed / 60)).padStart(2, "0");
+            const secs = String(elapsed % 60).padStart(2, "0");
+            document.getElementById("call-timer").textContent = `${mins}:${secs}`;
+        }, 1000);
+    }
+
+    function stopTimer() {
+        clearInterval(timerInterval);
+        document.getElementById("call-timer").textContent = "00:00";
+    }
+
+    function toggleMute() {
+        if (localStream) {
+            isMuted = !isMuted;
+            localStream.getAudioTracks().forEach(track => track.enabled = !isMuted);
+            document.getElementById("muteToggle").textContent = isMuted ? "🔇" : "🔊"; // Update icon
+            document.getElementById("muteToggle").title = isMuted ? "Unmute" : "Mute";
+        }
+    }
+
+    function toggleCamera() {
+        if (localStream) {
+            isCameraOff = !isCameraOff;
+            localStream.getVideoTracks().forEach(track => track.enabled = !isCameraOff);
+            document.getElementById("cameraToggle").textContent = isCameraOff ? "📸" : "🎥"; // Update icon
+            document.getElementById("cameraToggle").title = isCameraOff ? "Turn Camera On" : "Turn Camera Off";
+        }
+    }
+
+    // --- Browser Notifications ---
+    function requestNotificationPermission() {
+        if (!("Notification" in window)) {
+            console.warn("This browser does not support desktop notification.");
+        } else if (Notification.permission !== "granted") {
+            Notification.requestPermission().then(permission => {
+                if (permission === "granted") {
+                    console.log("Notification permission granted.");
+                } else {
+                    console.warn("Notification permission denied.");
                 }
-            )
-        )
-    }
-    function onLogout() {
-        stompClient.send("/app/user.disconnectUser",
-            {},
-            JSON.stringify({username: nickname, firstName: fullName, activity: 'OFFLINE'})
-        );
-        window.location.reload();
+            });
+        }
     }
 
-    usernameForm.addEventListener('submit', connect, true);
-    messageForm.addEventListener('submit', sendMessage, true);
-    logout.addEventListener('click', onLogout, true);
-    deleting.addEventListener('click',onDelete,true);
-    window.onbeforeunload = () => onLogout();
+    function showNotification(sender, messageContent) {
+        if (Notification.permission === "granted") {
+            const options = {
+                body: messageContent,
+                icon: 'https://placehold.co/48x48/000000/FFFFFF?text=Chat' // Placeholder icon
+            };
+            new Notification(`New message from ${sender}`, options);
+        }
+    }
 </script>
 </body>
 </html>

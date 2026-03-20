@@ -1,5 +1,5 @@
 import { Inject, Injectable, PLATFORM_ID } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import {HttpClient, HttpHeaders} from '@angular/common/http';
 import { Observable, of } from 'rxjs';
 import { isPlatformBrowser } from '@angular/common';
 // Ensure this path is correct for your project
@@ -71,15 +71,10 @@ export class UserService {
   // ADMIN METHODS (The Fix for 401 Error)
   // ==========================================
 
-  getAllUsers(): Observable<any[]> {
-    // 1. SSR Check: If on server, return empty list immediately.
-    if (!isPlatformBrowser(this.platformId)) {
-      return of([]);
-    }
+  getAllUsers() {
+    // 1. Взимаме токена от LocalStorage
 
-    // 2. Browser: Fetch the data.
-    // I updated the URL to match the error you saw earlier: /users/admin/all-users
-    return this.http.get<any[]>(`${this.baseUrl}/users/admin/all-users`);
+    return this.http.get<any[]>('http://localhost:8080/api/users/admin/all-users');
   }
 
   allUsers():Observable<any[]> {
@@ -91,6 +86,10 @@ export class UserService {
 
   deleteUser(id: number): Observable<any> {
     return this.http.delete(`${this.baseUrl}/users/admin/remove-user/${id}`);
+  }
+
+  getUserByUsername(username: string): Observable<any> {
+    return this.http.get<any>(`${this.baseUrl}/users/username/${username}`);
   }
 
 }

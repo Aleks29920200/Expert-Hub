@@ -6,11 +6,13 @@ import { FormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
 import { AuthService } from './services/auth.service';
 import { UserService } from './services/user.service';
+import {environment} from './environments/environment';
+import {AiChatComponent} from './components/ai-chat.component';
 
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [RouterOutlet, RouterLink, RouterLinkActive, CommonModule, FormsModule],
+  imports: [RouterOutlet, RouterLink, RouterLinkActive, CommonModule, FormsModule,AiChatComponent],
   templateUrl: './app.html',
   styleUrl: './app.css'
 })
@@ -18,6 +20,9 @@ export class App implements OnInit {
   currentUser: string | null = null;
   currentUserId: number | null = null;
   isAdmin: boolean = false;
+  isUserMenuOpen: boolean = false;
+
+  isRegisterMenuOpen: boolean = false;
   searchQuery: string = '';
 
   constructor(
@@ -55,19 +60,23 @@ export class App implements OnInit {
     });
   }
 
+
+
   fetchUserDetails() {
-    // Safety check again
-    if (!isPlatformBrowser(this.platformId)) {
-      return;
-    }
+    if (!isPlatformBrowser(this.platformId)) return;
 
     const token = localStorage.getItem('token');
     if (!token) return;
 
-    this.http.get<any>('http://localhost:4200/api/auth/me').subscribe({
+    // Увери се, че адресът е към 8080 (бекенда)
+    this.http.get<any>('http://localhost:8080/api/auth/me').subscribe({
       next: (user) => {
         if (user) {
           this.currentUserId = user.id;
+
+          // ---> ДОБАВИ ТОЗИ РЕД <---
+          this.currentUser = user.username;
+
           if (Array.isArray(user.role)) {
             this.isAdmin = user.role.some((r: any) => r.name === 'ADMIN');
           } else {
@@ -78,16 +87,25 @@ export class App implements OnInit {
       error: (err) => console.warn('Auth check failed', err)
     });
   }
-
-  // ... rest of your methods (logout, performSearch)
   performSearch() {
-    if (this.searchQuery.trim()) {
-      this.router.navigate(['/home'], { queryParams: { q: this.searchQuery } });
+    if (this.searchQuery && this.searchQuery.trim() !== '') {
+      // Пренасочваме към компонента за търсене с въведената дума
+      this.router.navigate(['/search', this.searchQuery]);
+      this.searchQuery = ''; // Изчистваме полето
     }
   }
+  logout(): void {
+    console.log("ВНИМАНИЕ: Методът logout() току-що се стартира!"); // <-- ДОБАВИ ТОВА
 
-  logout() {
-    this.authService.logout();
-    this.router.navigate(['/login']);
+    if (isPlatformBrowser(this.platformId)) {
+      localStorage.removeItem('token');
+      localStorage.removeItem('username');
+    }
+
+    this.router.navigate(['/']).then(() => {
+      window.location.reload(); // Пълно презареждане, за да изчистим състоянието
+    });
   }
+
+
 }

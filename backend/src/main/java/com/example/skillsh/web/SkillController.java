@@ -30,12 +30,7 @@ public class SkillController {
         this.skillService = skillService;
     }
 
-    @GetMapping
-    public ResponseEntity<List<SkillDto>> getAllSkills() {
-        // Assuming you have a method to map all skills to views
-        // If not, you can return List<Skill> or implement getSkills() in service
-        return ResponseEntity.ok(skillService.getSkills());
-    }
+
 
     @GetMapping("/{id}")
     public ResponseEntity<SkillView> getSkill(@PathVariable Long id) {
@@ -59,7 +54,11 @@ public class SkillController {
         skillService.updateSkill(skill);
         return ResponseEntity.ok("Skill updated successfully");
     }
-
+    @GetMapping("/all")
+    public ResponseEntity<List<SkillDto>> getAllSkills() {
+        List<SkillDto> skills = skillService.getSkills(); // Увери се, че имаш такъв метод в SkillService
+        return ResponseEntity.ok(skills);
+    }
     @DeleteMapping("/{id}")
     @PreAuthorize("hasRole('ROLE_ADMIN')")
     public ResponseEntity<?> deleteSkill(@PathVariable Long id) {

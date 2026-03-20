@@ -4,35 +4,48 @@ import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-import org.hibernate.annotations.GenericGenerator;
-import org.hibernate.annotations.ValueGenerationType;
-import org.hibernate.id.UUIDGenerator;
-import org.springframework.boot.context.properties.bind.DefaultValue;
-
-import java.sql.Timestamp;
-import java.util.Map;
-import java.util.UUID;
 
 @Entity
 @Getter
 @Setter
-@Table(name="messages")
+@Table(name = "messages", indexes = {
+        @Index(name = "idx_sender_receiver", columnList = "sender, receiver")
+})
 @NoArgsConstructor
 public class Message {
     @Id
-    @GeneratedValue(generator = "uuid2")
-    @GenericGenerator(name = "uuid2", strategy = "org.hibernate.id.UUIDGenerator")
-    @Column(columnDefinition = "VARCHAR(255)")
-    private String id;
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
     private String sender;
     private String receiver;
-    private String chatId;
-    private String repliedPersonName;
+
     @Column(columnDefinition = "TEXT")
-    private String previousMessage;
+    private String content; // Тук пазим обикновения текст на чата
+
+    // ----------------------------------------------------
+    // 1. БИЗНЕС ОФЕРТИ (Запазват се в базата като текст/JSON)
+    // ----------------------------------------------------
     @Column(columnDefinition = "TEXT")
-    private String content;
-    private Timestamp timestamp;
-    private Boolean isRead;
-    private  String indicatorForDeletion;
+    private String businessOffer; // Преименуваме го, за да не се бърка с WebRTC. Тук записваме JSON с цената/услугата.
+
+    // Много важно поле! Ще определя какво е съобщението:
+    // "CHAT", "BUSINESS_OFFER", "WEBRTC_OFFER", "WEBRTC_ANSWER", "WEBRTC_CANDIDATE"
+    private String messageType;
+
+    // ----------------------------------------------------
+    // 2. WebRTC СИГНАЛИ (НЕ се запазват в базата)
+    // ----------------------------------------------------
+    @Transient
+    private Object rtcOffer; // Използваме @Transient, за да не пълним базата с временни видео връзки
+
+    @Transient
+    private Object rtcAnswer;
+
+    @Transient
+    private Object rtcCandidate;
+
+    private boolean edited = false;
+    private boolean indicatorForDeletion = false;
+    private Long replyToMessageId;
 }

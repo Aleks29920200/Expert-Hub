@@ -29,7 +29,7 @@ window.onload = function () {
     const serverSecret = "10fac85ddaa11e9bbec401a6bfa391ca";
     const kitToken = ZegoUIKitPrebuilt.generateKitTokenForTest(appID, serverSecret, roomID, userID, userName);
 
-    
+
         const zp = ZegoUIKitPrebuilt.create(kitToken);
         zp.joinRoom({
             container: document.querySelector("#root"),
@@ -40,7 +40,7 @@ window.onload = function () {
             scenario: {
                 mode: ZegoUIKitPrebuilt.VideoConference,
             },
-                
+
            	turnOnMicrophoneWhenJoining: true,
            	turnOnCameraWhenJoining: true,
            	showMyCameraToggleButton: true,

@@ -16,10 +16,11 @@ export class PaymentService {
   createPaymentIntent(offerId: number): Observable<any> {
     return this.http.post(`${this.apiUrl}/api/payment`, { offerId });
   }
-
-  // Corresponds to HostedCheckoutController: createCheckoutSession
-  createHostedCheckoutSession(offerId: number): Observable<any> {
-    // Note: The backend redirects, but in Angular you usually get the URL and window.location.href to it
-    return this.http.post(`${this.apiUrl}/hostedCheckout/create-checkout-session`, { offerId });
+// Добавяме параметър userId към метода
+  createHostedCheckoutSession(userId: number, offerId: number): Observable<any> {
+    const url = 'http://localhost:8080/api/hostedCheckout/create-checkout-session';
+    // Изпращаме JSON обект с userId и offerId, точно както Java-та го очаква в CheckoutRequest
+    return this.http.post(url, { userId: userId, offerId: offerId });
   }
+
 }

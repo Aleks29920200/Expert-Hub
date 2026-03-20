@@ -1,13 +1,12 @@
 package com.example.skillsh.services.user;
 
-import com.example.skillsh.domain.dto.user.AddUserDTO;
-import com.example.skillsh.domain.dto.user.RegisterAsClientDto;
-import com.example.skillsh.domain.dto.user.RegisterAsExpertDto;
-import com.example.skillsh.domain.entity.Skill;
+import com.example.skillsh.domain.dto.user.*;
 
 import com.example.skillsh.domain.entity.User;
 import com.example.skillsh.domain.entity.enums.Status;
+import com.example.skillsh.domain.view.UserView;
 import jakarta.validation.Valid;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.stereotype.Service;
 
@@ -27,14 +26,15 @@ public interface UserService{
     User setUserStatus(User user);
      void updateStatus(String username, Status status);
     List<User> getAll();
-
+    @EntityGraph(attributePaths = {"role"})
+    UserProfileDTO getUserByUsername(String username);
     Optional<User> findUserByUsername(String username);
     Optional<User> findUserByEmail(String email);
-    List<User> users();
+    List<UserView> users();
 
     List<User>searchByFirstName(String firstName);
 
-    List<User> findAllBySkills(List<Long> skillids);
+    List<UserView> findAllBySkills(List<Long> skillids);
 
     void registerO2AuthUser(OAuth2User oauth2User);
 
@@ -45,5 +45,8 @@ public interface UserService{
     void deleteUser(Long id);
 
     List<User> getUsersWithReviews();
+
+    UserDTO saveUser(UserDTO userDTO);
+
 }
 

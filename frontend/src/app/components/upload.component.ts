@@ -1,6 +1,7 @@
 import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
+import {FileService} from '../services/file.service';
 
 @Component({
   selector: 'app-upload',
@@ -19,7 +20,7 @@ import { HttpClient } from '@angular/common/http';
 export class UploadComponent {
   selectedFile: File | null = null;
 
-  constructor(private http: HttpClient) {}
+  constructor(private fileService:FileService) {}
 
   onFileSelected(event: any) {
     this.selectedFile = event.target.files[0];
@@ -28,11 +29,9 @@ export class UploadComponent {
   onUpload() {
     if (!this.selectedFile) return;
 
-    const fd = new FormData();
-    fd.append('img', this.selectedFile);
-
-    this.http.post('http://localhost:8080/upload', fd).subscribe({
-      next: () => alert('Upload successful'),
+    // Използваме вече написаната логика, която правилно подава 'img'
+    this.fileService.upload(this.selectedFile).subscribe({
+      next: (res) => alert('Uploaded successfully!'),
       error: (err) => alert('Upload failed')
     });
   }

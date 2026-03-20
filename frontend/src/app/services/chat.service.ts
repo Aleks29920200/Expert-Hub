@@ -66,15 +66,15 @@ export class ChatService {
 
   sendMessage(message: ChatMessage) {
     if (this.stompClient && this.stompClient.connected) {
+      message.messageType = "CHAT"; // Задължително го добави!
       this.stompClient.publish({ destination: '/app/chat', body: JSON.stringify(message) });
     }
   }
 
-  // --- WebRTC Senders mapped to your ChatController ---
   sendCallOffer(message: ChatMessage) {
+    message.messageType = "WEBRTC_OFFER"; // За WebRTC
     this.stompClient?.publish({ destination: '/app/call/offer', body: JSON.stringify(message) });
   }
-
   sendCallAnswer(message: ChatMessage) {
     this.stompClient?.publish({ destination: '/app/call/answer', body: JSON.stringify(message) });
   }
@@ -97,5 +97,9 @@ export class ChatService {
     if (this.stompClient !== null) {
       this.stompClient.deactivate();
     }
+  }
+  // Взима списък с уникалните контакти (Inbox) за даден потребител
+  getRecentContacts(username: string): Observable<any[]> {
+    return this.http.get<any[]>(`http://localhost:8080/api/chat/contacts/${username}`);
   }
 }

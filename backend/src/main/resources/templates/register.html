@@ -2,61 +2,65 @@
 <html lang="en" xmlns:th="http://www.thymeleaf.org">
 <head>
   <meta charset="UTF-8">
-  <title>SkillSharing</title>
-  <link rel="stylesheet" href="/css/reset-css.css"/>
+  <title>SkillSharing - Register</title>
   <link rel="stylesheet" href="/css/bootstrap.min.css"/>
-  <link rel="stylesheet" type="text/css" href="/css/main.css"/>
-  <script src="/js/jquery-3.5.1.slim.min.js"></script>
-  <script src="/js/bootstrap.min.js"></script>
-  <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+  <link rel="stylesheet" href="/css/main.css"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
 </head>
-<body>
-<div class="form-group" >
-  <form class="form-control" name="registerForm" th:object="${registerDto}" th:action="@{/register}" method="post">
-    <div class="form-group">
-      <div class="form-row">
-        <h4>Username</h4>
-        <label id="Username">
-          <input type="text" min="5" max="20" name="Username" th:field="*{username}">
-        </label>
+<body class="bg-light">
+
+<div class="container d-flex justify-content-center align-items-center" style="min-height: 100vh;">
+  <div class="card shadow-lg p-4" style="width: 100%; max-width: 500px;">
+    <h3 class="text-center mb-4">Create Account</h3>
+
+    <form th:object="${registerAsExpertDto}" th:action="@{/registerExpert}" method="post" enctype="multipart/form-data">
+
+      <div class="mb-3">
+        <label for="username" class="form-label">Username</label>
+        <input type="text" id="username" th:field="*{username}" class="form-control" placeholder="Enter username" minlength="5" maxlength="20" required>
       </div>
-      <div class="form-row">
-        <h4>First name</h4>
-        <label id="first name">
-          <input type="text" min="5" max="20" name="First name" th:field="*{firstName}">
-        </label>
+
+      <div class="mb-3">
+        <label for="firstName" class="form-label">First Name</label>
+        <input type="text" id="firstName" th:field="*{firstName}" class="form-control" placeholder="Enter first name" minlength="2" maxlength="20" required>
       </div>
-      <div class="form-row">
-        <h4>Last name</h4>
-        <label id="last name">
-          <input type="text" min="5" max="20" name="Last name" th:field="*{lastName}">
-        </label>
+
+      <div class="mb-3">
+        <label for="lastName" class="form-label">Last Name</label>
+        <input type="text" id="lastName" th:field="*{lastName}" class="form-control" placeholder="Enter last name" minlength="2" maxlength="20" required>
       </div>
-      <div class="form-row">
-        <h4>Email</h4>
-        <label id="email">
-          <input type="email" name="Email" th:field="*{email}">
-        </label>
+
+      <div class="mb-3">
+        <label for="email" class="form-label">Email Address</label>
+        <input type="email" id="email" th:field="*{email}" class="form-control" placeholder="Enter email" required>
       </div>
-      <div class="form-row">
-        <h4>Password</h4>
-        <label id="password">
-          <input type="password" name="Password" th:field="*{password}">
-        </label>
+
+      <div class="mb-3">
+        <label for="password" class="form-label">Password</label>
+        <input type="password" id="password" th:field="*{password}" class="form-control" placeholder="Enter password" required>
       </div>
-    </div>
-    <div class="form-group">
-      <label for="categoryOfSkill" >Select your skill</label>
-      <select class="form-control" id="categoryOfSkill" th:field="*{categoryOfSkill}">
-        <option name="it" th:value="it" th:text="it">It</option>
-        <option name="medicine" th:value="medicine" th:text="medicine">Medicine</option>
-        <option name="archeology" th:value="archeology" th:text="archeology">Archeology</option>
-      </select>
-    </div>
-    <div class="form-group text-center">
-      <button class="btn btn-primary" type="submit">Register</button>
-    </div>
-  </form>
+
+      <div class="mb-3">
+        <label for="categoryOfSkill" class="form-label">Select Your Skill</label>
+        <select id="categoryOfSkill" class="form-control" th:field="*{categoryOfSkill}" required>
+          <option disabled selected value="">-- Choose a category --</option>
+          <option th:value="it">IT</option>
+          <option th:value="medicine">Medicine</option>
+          <option th:value="archeology">Archeology</option>
+        </select>
+      </div>
+
+      <div>
+        <label for="upload-image">Image upload</label>
+        <input type="file" id="upload-image" th:field="*{photoUrl}" name="img" required class="form-control-file">
+      </div>
+      <div class="d-grid">
+        <button type="submit" class="btn btn-primary">Register</button>
+      </div>
+    </form>
+  </div>
 </div>
+
+<script src="/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

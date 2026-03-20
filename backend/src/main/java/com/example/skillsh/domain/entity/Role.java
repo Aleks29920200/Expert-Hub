@@ -1,6 +1,7 @@
 package com.example.skillsh.domain.entity;
 
 import jakarta.persistence.*;
+import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -17,4 +18,7 @@ public class Role {
     public Long id;
     @Column(nullable = false)
     public String name;
+    public Role(String name){
+        this.name=name;
+    }
 }

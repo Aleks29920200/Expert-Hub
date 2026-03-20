@@ -5,9 +5,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-import java.util.AbstractList;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 
 @Entity
 @Getter
@@ -23,13 +21,10 @@ public class Skill {
     private String description;
     private String category;
     private String tag;
-    @ManyToMany(fetch = FetchType.EAGER)
-    @JoinTable(name = "users_skills", joinColumns = {
-            @JoinColumn(name = "user_id")},
-            inverseJoinColumns = @JoinColumn(name = "skill_id"))
-    private List<User> createdBy;
-
+    @ManyToMany(mappedBy = "skills") // Refers to the field name in User
+    private List<User> users = new ArrayList<>();
     public Skill() {
-        createdBy=new ArrayList<>();
+
     }
+
 }

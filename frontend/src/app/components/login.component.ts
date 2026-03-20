@@ -61,6 +61,7 @@ import { AuthService } from '../services/auth.service';
 })
 export class LoginComponent {
   loginForm: FormGroup;
+  credentials = { username: '', password: '' };
   errorMessage: string = '';
 
   constructor(
@@ -74,17 +75,34 @@ export class LoginComponent {
     });
   }
 
+
   onSubmit(): void {
-    if (this.loginForm.valid) {
-      this.authService.login(this.loginForm.value).subscribe({
-        next: (response) => {
-          this.router.navigate(['/home']);
-        },
-        error: (err) => {
-          this.errorMessage = 'Invalid username or password';
-          console.error('Login failed', err);
-        }
-      });
+    console.log('--- СТАРТ НА ОПИТ ЗА ВХОД ---');
+    console.log('1. Въведени данни до момента:', this.loginForm.value);
+
+    // 1. Проверка за валидност
+    if (this.loginForm.invalid) {
+      console.warn('2. СТОП: Формата е НЕВАЛИДНА! Провери дължината на символите.');
+      this.errorMessage = 'Моля, въведете поне 4 символа за име и 5 за парола.';
+      return;
     }
+
+    const loginData = this.loginForm.value;
+    console.log('3. Формата е валидна! Пращаме към бекенда:', loginData);
+
+    // 2. Изпращане на заявка
+    this.authService.login(this.loginForm.value).subscribe({
+      next: (response) => {
+        console.log('Успешен вход с роля:', response.role);
+
+        if (response.role === 'ADMIN') {
+          this.router.navigate(['/admin']); // Или твоя път за админ
+        } else {
+          this.router.navigate(['/home']); // Път за обикновен потребител
+        }
+      },
+      error: (err) => console.error('Грешка при вход', err)
+    });
   }
+
 }

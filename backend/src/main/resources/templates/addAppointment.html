@@ -28,41 +28,39 @@
             padding: 20px;
             box-shadow: 0 0 15px rgba(0, 0, 0, 0.3);
         }
-
-        input[type="text"], input[type="time"] {
+        input[type="text"], input[type="datetime-local"] {
             padding: 10px;
             width: 100%;
             margin: 10px 0;
         }
-
-        input[type="button"] {
+        input[type="button"], button[type="submit"] {
             padding: 10px;
             width: 100%;
             margin: 10px 0;
             background-color: #333;
             color: white;
             border: none;
+            border-radius: 8px;
         }
-
         #eventList {
             margin-top: 20px;
             max-height: 150px;
             overflow-y: auto;
+            list-style: none; /* Changed from ul to div/list style cleanup */
+            padding: 0;
         }
-
-        event-item {
+        .event-item { /* Changed event-item to a class */
             padding: 5px;
-            margin: 2px 0;
+            margin: 5px 0;
             background: #f8f9fa;
             border: 1px solid #ccc;
             border-radius: 5px;
             cursor: pointer;
         }
-
-        event-item:hover {
+        .event-item:hover {
             background: #e2e2e2;
         }
-        event-list {
+        .event-list { /* Changed event-list to a class */
             width: 400px;
             height: auto;
             background-color: rgba(255, 255, 255, 0.8);
@@ -71,89 +69,89 @@
             box-shadow: 0 0 15px rgba(0, 0, 0, 0.3);
             text-align: center;
         }
-
-        .event-list h2 {
-            margin-bottom: 20px;
-        }
-
-        event-item {
-            padding: 15px;
-            background-color: #e0e0e0;
-            margin: 10px 0;
-            border-radius: 8px;
-            cursor: pointer;
-        }
-
-        event-item:hover {
-            background-color: #ccc;
-        }
-
-        button {
-            margin-top: 15px;
-            padding: 10px;
-            width: 100%;
-            background-color: #333;
-            color: white;
-            border: none;
-            border-radius: 8px;
-        }
-
-        button:hover {
-            background-color: #555;
-        }
     </style>
 </head>
 <body>
 <div class="cutout-form">
     <h3>Add Event</h3>
-    <form id="appointmentForm"  th:object="${addAppointment}" th:action="@{/addAppointment}" th:method="post">
+    <form id="appointmentForm" th:object="${addAppointment}" th:action="@{/user/addAppointment}" th:method="post" onsubmit="return addEvent(event)">
         <div class="form-row">
             <label for="eventName">Event Name:</label>
             <input id="eventName" th:name="*{name}" type="text" th:field="*{name}" placeholder="Enter event name">
         </div>
         <div class="form-row">
             <label for="eventTime">Event Time:</label>
-            <input id="eventTime"  th:name="*{dateOfAppointment}" type="datetime-local" th:field="*{dateOfAppointment}">
+            <input id="eventTime" th:name="*{dateOfAppointment}" type="datetime-local" th:field="*{dateOfAppointment}">
         </div>
-        <button id="addButton"  type="submit" onsubmit="addEvent()">Add event</button>
+        <button id="addButton" type="submit">Add event</button>
     </form>
-        <h3>Remove Event</h3>
-        <p>Select an event then click on him to select it and press the button to remove it</p>
-        <ul id="eventList">
-        </ul>
-    <form th:action="@{/remove}" >
-        <span id="selectedAppointment" th:value="${addAppointment}"></span>
+
+    <h3>Remove Event</h3>
+    <p>Select an event then click on him to select it and press the button to remove it</p>
+    <div id="eventList">
+    </div>
+    <form th:action="@{/remove}" method="post">
+        <input type="hidden" id="selectedAppointment" name="appointmentToRemove" value="" />
+        <input id="removeButton" value="Remove Event" type="button" onclick="removeSelectedEvent()">
     </form>
-        <input  id="removeButton" value="Remove Event" type="button" onclick="removeSelectedEvent()">
 </div>
+
 <script th:inline="javascript">
-    const selectedDate = localStorage.getItem("selectedDate");
+    const selectedDate = localStorage.getItem("selectedDate"); // e.g., "15 12 2025"
 
-    function addEvent() {
+    // This function returns the full localStorage key for the selected day
+    function getEventStorageKey() {
+        return selectedDate ? `${selectedDate}my` : null;
+    }
+
+    // Function to load events from localStorage for the selected day
+    function loadEvents() {
+        const key = getEventStorageKey();
+        if (!key) return [];
+        let events = localStorage.getItem(key);
+        return events ? JSON.parse(events) : [];
+    }
+
+    function addEvent(event) {
+        // Prevent default form submission to handle locally first
+        event.preventDefault();
+
         const eventName = document.getElementById('eventName').value;
-        const eventTime = document.getElementById('eventTime').value;
+        const eventDateTime = document.getElementById('eventTime').value;
 
-        if (!eventName || !eventTime) {
-            alert("Please provide both event name and time");
-            return;
+        if (!eventName || !eventDateTime) {
+            alert("Please provide both event name and date/time");
+            return false;
         }
 
-        let events = localStorage.getItem(`${selectedDate}my`);
-        events = events ? JSON.parse(events) : [];
+        // Get the time portion from the datetime-local input (if needed)
+        // For simplicity, we save the full datetime string in this fix.
+        const eventTime = eventDateTime;
 
+        let events = loadEvents();
+
+        // Check for duplicates
         const eventExists = events.some(event => event.name === eventName && event.time === eventTime);
         if (eventExists) {
             alert("An event with the same name and time already exists for this date.");
-            return;
+            return false;
         }
 
         events.push({ name: eventName, time: eventTime });
-        localStorage.setItem(`${selectedDate}my`, JSON.stringify(events));
+        localStorage.setItem(getEventStorageKey(), JSON.stringify(events));
+
         loadEventList();
+
+        // Clear inputs
         document.getElementById('eventName').value = '';
         document.getElementById('eventTime').value = '';
-        opener.document.location.reload();
-        self.close()
+
+        // Reload the opener window (the main calendar) and close the popup
+        if (window.opener) {
+            window.opener.location.reload();
+        }
+        self.close();
+        return false; // Prevent form submission
     }
 
     function loadEventList() {
@@ -164,18 +162,16 @@
         events.forEach((event, index) => {
             const eventItem = document.createElement('div');
             eventItem.className = 'event-item';
-            eventItem.textContent = `${event.name} at ${event.time}`;
+
+            // Format time for display (adjust as needed if you only want the time part)
+            const timePart = event.time.split('T').pop() || event.time;
+
+            eventItem.textContent = `${event.name} at ${timePart}`;
             eventItem.dataset.index = index;
             eventItem.onclick = () => selectEvent(eventItem);
             eventListDiv.appendChild(eventItem);
         });
     }
-
-    function loadEvents() {
-        let events = localStorage.getItem(`${selectedDate}my`);
-        return events ? JSON.parse(events) : [];
-    }
-
 
     function selectEvent(eventItem) {
         const selectedItems = document.querySelectorAll('.event-item');
@@ -186,24 +182,35 @@
 
     function removeSelectedEvent() {
         const selectedIndex = localStorage.getItem('selectedEventIndex');
-        let elementsByTagNameElement = document.getElementsByTagName('ul')[selectedIndex].innerText;
-        let strings = elementsByTagNameElement.split("at");
-        document.getElementById("selectedAppointment").innerText=strings[0]+" "+strings[1];
-        alert(document.getElementById("selectedAppointment").innerText);
         if (selectedIndex === null) {
             alert("Please select an event to remove.");
             return;
         }
-        let events = loadEvents();
+
+        // Get the event data to pass to the Spring controller if needed
+        const events = loadEvents();
+        const eventToRemove = events[selectedIndex];
+
+        // Optional: Set hidden field for Spring controller removal (if you uncomment the Spring form logic)
+        // document.getElementById("selectedAppointment").value = eventToRemove.name + " " + eventToRemove.time;
+        // alert("Selected for removal: " + document.getElementById("selectedAppointment").value); // For confirmation
+
+        // Remove from local storage
         events.splice(selectedIndex, 1);
-        localStorage.setItem(`${selectedDate}my`, JSON.stringify(events));
+        localStorage.setItem(getEventStorageKey(), JSON.stringify(events));
+
         loadEventList();
         localStorage.removeItem('selectedEventIndex');
-        opener.document.location.reload();
+
+        // Reload the opener window (the main calendar) and close the popup
+        if (window.opener) {
+            window.opener.location.reload();
+        }
         self.close();
     }
-    loadEventList();
 
+    // Initial load
+    loadEventList();
 </script>
 </body>
 </html>

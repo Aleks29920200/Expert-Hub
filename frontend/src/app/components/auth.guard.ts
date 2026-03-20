@@ -9,26 +9,26 @@ export const authGuard: CanActivateFn = (route, state) => {
   const router = inject(Router);
   const platformId = inject(PLATFORM_ID);
 
-  // ----------------------------------------------------------------
-  // OPTION A: SSR BLOCKER
-  // ----------------------------------------------------------------
-  // If we are running on the Server, we effectively treat the user
-  // as "not logged in" (since the server has no LocalStorage).
-  // We redirect to login immediately to stop the protected component
-  // from rendering and making API calls.
-  if (!isPlatformBrowser(platformId)) {
+  if (!isPlatformBrowser(platformId)) return true;
+
+  const token = localStorage.getItem('token');
+  const userRole = localStorage.getItem('role');
+  const requiredRole = route.data['role']; // Вземаме ролята от конфигурацията на пътя
+
+  // 1. Проверка за логнат потребител
+  if (!token) {
     return router.createUrlTree(['/login']);
   }
 
-  // ----------------------------------------------------------------
-  // BROWSER LOGIC
-  // ----------------------------------------------------------------
-  if (authService.isLoggedIn()) {
-    return true;
-  } else {
-    return router.createUrlTree(['/login']);
+  // 2. Проверка за роля (ако пътят изисква конкретна роля)
+  if (requiredRole && userRole !== requiredRole) {
+    console.warn('Достъп отказан! Изисква се роля:', requiredRole);
+    return router.createUrlTree(['/home']); // Пращаме го вкъщи, ако не е админ
   }
+
+  return true;
 };
+
 
 export const adminGuard: CanActivateFn = (route, state) => {
   const authService = inject(AuthService);

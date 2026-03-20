@@ -31,8 +31,8 @@ import {UserService} from '../services/user.service';
           </div>
           <div class="p-4 bg-gray-50 rounded-lg" *ngIf="user.picture">
             <p class="text-sm font-medium text-gray-500 mb-2">Photo</p>
-            <img ngSrc="'data:image/jpeg;base64,' + user.photoUrl" class="w-full rounded-lg object-cover h-48"
-                 alt="djdj" fill>
+            <img [src]="'data:image/jpeg;base64,' + user.photoUrl"
+                 class="w-full rounded-lg object-cover h-48" alt="User Photo">
           </div>
         </div>
       </div>

@@ -20,17 +20,22 @@ public class AppointmentServiceImpl implements AppointmentService {
 }
 
     @Override
-    public void addAppointment(AddAppointment addAppointment) {
-        Appointment appointment=new Appointment();
+    public void addAppointment(AddAppointment addAppointment, User requester, User provider, Skill skill) {
+        Appointment appointment = new Appointment();
         appointment.setName(addAppointment.getName());
         appointment.setDateOfAppointment(addAppointment.getDateOfAppointment());
+        // ТРЯБВА ДА ДОБАВИШ ТЕЗИ:
+        appointment.setRequester(requester);
+        appointment.setProvider(provider);
+        appointment.setSkill(skill);
         appointmentRepo.save(appointment);
-}
-
-    @Override
-    public void removeAppointment(AddAppointment appointment) {
-        appointmentRepo.delete(mapper.map(appointment,Appointment.class));
     }
+@Override
+public void removeAppointment(Long appointmentId) {
+        appointmentRepo.deleteById(appointmentId);
+    }
+
+
 
     @Override
     public List<Appointment> getAllAppointments() {

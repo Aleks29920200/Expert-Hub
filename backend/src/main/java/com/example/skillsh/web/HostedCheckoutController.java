@@ -17,11 +17,11 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.servlet.view.RedirectView;
-
+import java.util.Map;
 import java.time.LocalDateTime;
 
 @RestController
-@RequestMapping("/hostedCheckout")
+@RequestMapping("/api/hostedCheckout")
 @Slf4j
 public class HostedCheckoutController {
 
@@ -30,7 +30,7 @@ public class HostedCheckoutController {
     private final ServiceOrderRepository orderRepository;
 
     // Use property injection for dynamic base URL
-    @Value("${app.base-url:http://localhost:8000}")
+    @Value("${app.base-url:http://localhost:8080}")
     private String baseUrl;
 
     public HostedCheckoutController(UserRepo userRepository, ServiceOfferRepository offerRepository, ServiceOrderRepository orderRepository) {
@@ -52,8 +52,11 @@ public class HostedCheckoutController {
      * * @param request Contains userId and offerId to create the ServiceOrder.
      * @return RedirectView to the Stripe Hosted Checkout page.
      */
-    @PostMapping
-    public RedirectView checkout(CheckoutRequest request) throws StripeException {
+    // ДОБАВИ ТОЗИ ИМПОРТ НАГОРЕ ПРИ ДРУГИТЕ:
+    // import java.util.Map;
+
+    @PostMapping("/create-checkout-session")
+    public ResponseEntity<?> checkout(@RequestBody CheckoutRequest request) throws StripeException {
         // --- 1. Fetch User and Service Offer ---
         User buyer = userRepository.findById(request.userId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
@@ -62,7 +65,7 @@ public class HostedCheckoutController {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Service Offer not found"));
 
         long amountInCents = offer.getPrice().movePointRight(2).longValueExact();
-        String currency = "usd"; // Assuming currency
+        String currency = "usd";
 
         // --- 2. Create and Save PENDING Service Order ---
         ServiceOrder newOrder = new ServiceOrder();
@@ -71,7 +74,7 @@ public class HostedCheckoutController {
         newOrder.setAmount(offer.getPrice());
         newOrder.setCurrency(currency);
         newOrder.setOrderDate(LocalDateTime.now());
-        newOrder.setStatus("PENDING"); // Initial status before payment
+        newOrder.setStatus("PENDING");
 
         ServiceOrder savedOrder = orderRepository.save(newOrder);
         log.info("New Service Order {} created as PENDING for Hosted Checkout.", savedOrder.getId());
@@ -81,20 +84,13 @@ public class HostedCheckoutController {
             SessionCreateParams params =
                     SessionCreateParams.builder()
                             .setMode(SessionCreateParams.Mode.PAYMENT)
-                            // Define redirect URLs
                             .setSuccessUrl(baseUrl + "/hostedCheckout/success?session_id={CHECKOUT_SESSION_ID}")
                             .setCancelUrl(baseUrl + "/hostedCheckout/cancel")
-
-                            // CRUCIAL: Add the ServiceOrder ID to the Session metadata
                             .putMetadata("order_id", String.valueOf(savedOrder.getId()))
-
-                            // Optional: Set PaymentIntent metadata as well, for redundancy
                             .setPaymentIntentData(
                                     SessionCreateParams.PaymentIntentData.builder()
                                             .putMetadata("order_id", String.valueOf(savedOrder.getId()))
                                             .build())
-
-                            // 4. Add Line Items
                             .addLineItem(
                                     SessionCreateParams.LineItem.builder()
                                             .setQuantity(1L)
@@ -114,25 +110,16 @@ public class HostedCheckoutController {
             // 5. Create the Session
             Session session = Session.create(params);
 
-            // 6. Update the Service Order with the Session ID (optional, but good for tracking)
-            // Note: The PI ID is set on the PI when created later.
-            // savedOrder.setStripeSessionId(session.getId());
-            // orderRepository.save(savedOrder);
-
-            // 7. Redirect the user to the Stripe hosted URL
-            return new RedirectView(session.getUrl());
+            // ПРОМЯНАТА Е ТУК: Връщаме JSON обект с URL-а към Stripe, вместо RedirectView!
+            return ResponseEntity.ok(Map.of("url", session.getUrl()));
 
         } catch (StripeException e) {
             log.error("Error creating Stripe Checkout Session:", e);
-            // On failure, it's safer to mark the order as cancelled/failed or delete it.
             savedOrder.setStatus("FAILED_CREATION");
             orderRepository.save(savedOrder);
-
-            // Redirect to a generic error page
             throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Failed to initialize payment: " + e.getMessage());
         }
     }
-
     // --- Success and Cancel Handlers ---
 
     @GetMapping("/success")

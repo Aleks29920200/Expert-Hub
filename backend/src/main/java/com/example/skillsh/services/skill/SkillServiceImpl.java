@@ -10,6 +10,7 @@ import com.example.skillsh.services.user.UserServiceImpl;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -35,7 +36,32 @@ public class SkillServiceImpl implements SkillService {
         Skill skill = getSkillByCategory(nameOfSkill);
         return skill;
     }
+    public SkillDto saveSkill(SkillDto skillDTO) {
+        Skill skill = new Skill();
+        skill.setName(skillDTO.getName());
 
+        Skill savedSkill = skillRepo.save(skill);
+        return mapToDTO(savedSkill);
+    }
+    @Transactional
+    public SkillDto updateSkill(Long id, SkillDto skillDTO) {
+        // Търсим умението по ID. Ако го няма, хвърляме грешка.
+        Skill skill = skillRepo.findById(id)
+                .orElseThrow(() -> new RuntimeException("Умението не е намерено!"));
+
+        // Обновяваме данните
+        skill.setName(skillDTO.getName());
+        skill.setDescription(skillDTO.getName());
+
+        Skill updatedSkill = skillRepo.save(skill);
+        return mapToDTO(updatedSkill);
+    }
+    private SkillDto mapToDTO(Skill skill) {
+        SkillDto dto = new SkillDto();
+        dto.setId(skill.getId());
+        dto.setName(skill.getName());
+        return dto;
+    }
     @Override
     public Skill getSkillByCategory(String category) {
         return this.skillRepo.getSkillByCategory(category);

@@ -94,7 +94,8 @@ export class AddUserComponent {
     });
 
     // Добавяме файла
-    formData.append('img', this.selectedFile);
+    // Промени ключа, за да съвпада с Java DTO-то:
+    formData.append('photoUrl', this.selectedFile);
 
     // Изпращаме към сървиса (увери се, че имаш метод за AddUser с FormData в UserService,
     // или използвай Auth метода ако е регистрация)

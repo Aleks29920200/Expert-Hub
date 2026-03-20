@@ -10,6 +10,7 @@
     <script src="/js/bootstrap.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/sockjs-client/1.1.4/sockjs.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/stomp.js/2.3.3/stomp.min.js"></script>
+
     <style>
         * {
             margin: 0;
@@ -24,25 +25,21 @@
             align-items: center;
             justify-content: center;
         }
-
         .calendar-container {
             background: sandybrown;
             width: 1200px;
             border-radius: 10px;
             box-shadow: 0 15px 40px rgba(0, 0, 0, 0.12);
         }
-
         .calendar-container header {
             display: flex;
             align-items: center;
             padding: 25px 30px 10px;
             justify-content: space-between;
         }
-
         header .calendar-navigation {
             display: flex;
         }
-
         header .calendar-navigation span {
             height: 38px;
             width: 38px;
@@ -55,61 +52,50 @@
             color: #aeabab;
             font-size: 1.9rem;
         }
-
         .calendar-navigation span:last-child {
             margin-right: -10px;
         }
-
         header .calendar-navigation span:hover {
             background: #f2f2f2;
         }
-
         header .calendar-current-date {
             font-weight: 500;
             font-size: 1.45rem;
         }
-
         .calendar-body {
             padding: 20px;
         }
-
         .calendar-body ul {
             list-style: none;
             flex-wrap: wrap;
             display: flex;
             text-align: center;
         }
-
         .calendar-body .calendar-dates {
             margin-bottom: 20px;
         }
-
         .calendar-body li {
             width: calc(100% / 7);
             font-size: 1.07rem;
             color: #414141;
         }
-
         .calendar-body .calendar-weekdays li {
             cursor: default;
             font-weight: 500;
         }
-
         .calendar-body .calendar-dates li {
             margin-top: 30px;
             position: relative;
             z-index: 1;
             cursor: pointer;
         }
-
-        .calendar-dates li inactive {
+        /* CSS targeting the correct class names */
+        .calendar-dates li.inactive {
             color: #aaa;
         }
-
-        .calendar-dates li active {
+        .calendar-dates li.active {
             color: #fff;
         }
-
         .calendar-dates li::before {
             position: absolute;
             content: "";
@@ -121,13 +107,24 @@
             border-radius: 50%;
             transform: translate(-50%, -50%);
         }
-
-        .calendar-dates li active::before {
+        .calendar-dates li.active::before {
             background: #6332c5;
         }
-
-        .calendar-dates li:not(active):hover::before {
+        .calendar-dates li:not(.active):hover::before {
             background: #e4e1e1;
+        }
+        /* Event display styles */
+        .calendar-dates li ul {
+            display: block;
+            margin-top: 5px;
+            padding: 0;
+        }
+        .calendar-dates li ul li {
+            width: 100%;
+            font-size: 0.75rem;
+            color: purple !important;
+            padding: 2px 0;
+            white-space: pre-wrap;
         }
     </style>
 </head>
@@ -153,171 +150,164 @@
             </ul>
             <ul id="calendar-dates" class="calendar-dates"></ul>
         </div>
-
-
     </div>
 </div>
 
-    <script>
-        let date = new Date();
-        let year = date.getFullYear();
-        let month = date.getMonth();
-        const day = document.querySelector(".calendar-dates");
-        const currdate = document.querySelector(".calendar-current-date");
-        const prenexIcons = document.querySelectorAll(".calendar-navigation span");
-        const months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+<script>
+    let date = new Date();
+    let year = date.getFullYear();
+    let month = date.getMonth(); // 0-indexed (0=January, 11=December)
+    const dayElement = document.querySelector(".calendar-dates");
+    const currdate = document.querySelector(".calendar-current-date");
+    const prenexIcons = document.querySelectorAll(".calendar-navigation span");
+    const months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
 
-        let selectedDate="";
-        function openAppointmentPopup(day, month, year) {
-            window.open('addAppointment', 'popUpWindow', 'height=500,width=400,left=100,top=100,resizable=yes,scrollbars=yes,toolbar=yes,menubar=no,location=no,directories=no, status=yes');
-            localStorage.setItem("selectedDate", day + " " + month + " " + year);
-        }
-        function loadEventsFromLocalStorage(selectedDate) {
-            let events = localStorage.getItem(`${selectedDate}my`);
-            if (!events || events === "undefined" || events === "null" || events.trim() === "") {
+    function openAppointmentPopup(day, monthIndex, year) {
+        // The key format for the event list is "D M Y" where M is 1-indexed (1-12)
+        localStorage.setItem("selectedDate", day + " " + monthIndex + " " + year);
+        window.open('addAppointment', 'popUpWindow', 'height=500,width=400,left=100,top=100,resizable=yes,scrollbars=yes,toolbar=yes,menubar=no,location=no,directories=no, status=yes');
+    }
+
+    function loadEventsFromLocalStorage(dateKey) {
+        // The key is expected to be "[Day] [Month_1_Indexed] [Year]my"
+        let events = localStorage.getItem(dateKey);
+        if (!events || events === "undefined" || events === "null" || events.trim() === "") {
+            return [];
+        } else {
+            try {
+                return JSON.parse(events);
+            } catch (e) {
+                console.error("Invalid JSON found in localStorage for key:", dateKey, ". Resetting events.");
                 return [];
-            } else {
-                try {
-                    return JSON.parse(events);
-                } catch (e) {
-                    console.error("Invalid JSON found in localStorage. Resetting events.");
-                    return [];
-                }
             }
         }
+    }
 
-        function generateCalendar() {
-            let dayOne = new Date(year, month, 1).getDay();
-            let lastDate = new Date(year, month + 1, 0).getDate();
-            let lastMonthDate = new Date(year, month, 0).getDate();
-            let endDay = new Date(year, month, lastDate).getDay();
-            let lit = "";
+    function generateCalendar() {
+        let dayOne = new Date(year, month, 1).getDay();
+        let lastDate = new Date(year, month + 1, 0).getDate();
+        let lastMonthDate = new Date(year, month, 0).getDate();
+        let endDay = new Date(year, month, lastDate).getDay();
+        let lit = "";
 
-            for (let i = dayOne; i > 0; i--) {
-                lit += `<li class="inactive" ondblclick="openAppointmentPopup(${lastMonthDate - i + 1}, ${month}, ${year})">${lastMonthDate - i + 1}</li>`;
-            }
+        // --- Render Previous Month Days (Inactive) ---
+        for (let i = dayOne; i > 0; i--) {
+            // Calculate actual month/year for previous month's days
+            let prevMonth = month === 0 ? 12 : month; // 1-indexed
+            let prevYear = month === 0 ? year - 1 : year;
+            let dayNum = lastMonthDate - i + 1;
 
-            for (let i = 1; i <= lastDate; i++) {
-                let isToday = i === date.getDate() && month === new Date().getMonth() && year === new Date().getFullYear() ? "active" : "";
-                let selectedDate = i + " " + (month + 1) + " " + year;
-                lit += `<li class="${isToday}"  ondblclick="openAppointmentPopup(${i}, ${month + 1}, ${year})">
-                            ${i}
-                            <ul id="events-${selectedDate}"></ul>
-                        </li>`;
-            }
+            lit += `<li class="inactive" ondblclick="openAppointmentPopup(${dayNum}, ${prevMonth}, ${prevYear})">${dayNum}</li>`;
+        }
 
-            for (let i = endDay; i < 6; i++) {
-                lit += `<li class="inactive" ondblclick="openAppointmentPopup(${i - endDay + 1}, ${month + 2}, ${year})">${i - endDay + 1}</li>`;
-            }
+        // --- Render Current Month Days (Active) ---
+        for (let i = 1; i <= lastDate; i++) {
+            let isToday = i === new Date().getDate() && month === new Date().getMonth() && year === new Date().getFullYear() ? "active" : "";
 
-            if(month===0){
-                document.getElementById("wholeCalendar").style.backgroundImage="url('https://images.pexels.com/photos/530303/pexels-photo-530303.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2')";
-            }
-            else if(month===1){
-                document.getElementById("wholeCalendar").style="url('https://images.pexels.com/photos/10314132/pexels-photo-10314132.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2')"
-            }else if(month===2){
-                document.getElementById("wholeCalendar").style.backgroundImage="url('https://images.pexels.com/photos/813872/pexels-photo-813872.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2')";
-            }else if(month===3){
-                document.getElementById("wholeCalendar").style.backgroundImage="url('https://images.pexels.com/photos/443420/pexels-photo-443420.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2')";
-            }else if(month===4){
-                document.getElementById("wholeCalendar").style.backgroundImage="url('https://images.pexels.com/photos/2876645/pexels-photo-2876645.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2')";
-            }else if(month===5){
-                document.getElementById("wholeCalendar").style.backgroundImage="url('https://images.pexels.com/photos/33044/sunflower-sun-summer-yellow.jpg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2')";
-            }else if(month===6){
-                document.getElementById("wholeCalendar").style.backgroundImage="url('https://images.pexels.com/photos/450038/pexels-photo-450038.jpeg')";
-            }else if(month===7){
-                document.getElementById("wholeCalendar").style.backgroundImage="url('https://images.pexels.com/photos/1032650/pexels-photo-1032650.jpeg')";
-            }else if(month===8){
-                document.getElementById("wholeCalendar").style.backgroundImage="url('https://images.pexels.com/photos/67566/palm-tree-palm-ocean-summer-67566.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2')";
-            }else if(month===9){
-                document.getElementById("wholeCalendar").style.backgroundImage="url('https://images.pexels.com/photos/33109/fall-autumn-red-season.jpg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2')";
-            }else if(month===10){
-                document.getElementById("wholeCalendar").style.backgroundImage="url('https://images.pexels.com/photos/640809/pexels-photo-640809.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2')";
-            }else if(month===11){
-                document.getElementById("wholeCalendar").style.backgroundImage="url('https://images.pexels.com/photos/572897/pexels-photo-572897.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2')";
-            }
-            currdate.innerText = `${months[month]} ${year}`;
-            day.innerHTML = lit;
+            // This is the 1-indexed month used for the localStorage key
+            let currentMonthIndex = month + 1;
 
-            const calendarDays = document.querySelectorAll(".calendar-dates li");
-            calendarDays.forEach(function (day) {
-                const selectedDate = day.textContent.trim() + " " + (month + 1) + " " + year;
-                const events = loadEventsFromLocalStorage(selectedDate);
+            // Key to load events for this specific day (WITHOUT "my")
+            // This is just to create the unique <ul> ID
+            // NOTE: The ID format MUST match the logic in the event loading loop below!
+            let ulId = `events-${i}-${currentMonthIndex}-${year}`;
 
+            lit += `<li class="${isToday}" data-day="${i}" data-month="${currentMonthIndex}" data-year="${year}" ondblclick="openAppointmentPopup(${i}, ${currentMonthIndex}, ${year})">
+                         ${i}
+                         <ul id="${ulId}"></ul>
+                     </li>`;
+        }
 
-                const eventsContainer = document.getElementById(`events-${selectedDate}`);
+        // --- Render Next Month Days (Inactive) ---
+        for (let i = endDay; i < 6; i++) {
+            // Calculate actual month/year for next month's days
+            let nextMonth = month === 11 ? 1 : month + 2; // 1-indexed
+            let nextYear = month === 11 ? year + 1 : year;
+            let dayNum = i - endDay + 1;
+
+            lit += `<li class="inactive" ondblclick="openAppointmentPopup(${dayNum}, ${nextMonth}, ${nextYear})">${dayNum}</li>`;
+        }
+
+        // Update header and calendar
+        currdate.innerText = `${months[month]} ${year}`;
+        dayElement.innerHTML = lit;
+
+        // --- Load Events after rendering days ---
+        const calendarDays = document.querySelectorAll(".calendar-dates li:not(.inactive)"); // ONLY check current month days
+
+        calendarDays.forEach(function (day) {
+            const dayNum = day.dataset.day;
+            const currentMonthIndex = day.dataset.month;
+            const currentYear = day.dataset.year;
+
+            // Build the exact key that the popup saves: "[Day] [Month_1_Indexed] [Year]my"
+            const selectedDateKey = dayNum + " " + currentMonthIndex + " " + currentYear + "my";
+            const events = loadEventsFromLocalStorage(selectedDateKey);
+
+            const eventsContainer = document.getElementById(`events-${dayNum}-${currentMonthIndex}-${currentYear}`);
+
+            if (eventsContainer) {
                 events.forEach(event => {
                     const eventItem = document.createElement("li");
-                    eventItem.style = "background: transparent;  padding-right: 100px; color: purple;text-align: center";
-                    eventItem.textContent = "Event name"+event.name +
-                        "\nTime: " + event.time;
+                    eventItem.style = "background: transparent; color: purple; text-align: center; border: none;";
+
+                    // Display Time only if event.time is a full datetime-local string
+                    let displayTime = event.time;
+                    if (event.time && event.time.includes('T')) {
+                        displayTime = event.time.split('T')[1];
+                    }
+
+                    eventItem.textContent = "Event: " + event.name + "\nTime: " + displayTime;
                     eventsContainer.appendChild(eventItem);
                 });
-            });
-        }
-
-        generateCalendar();
-
-        prenexIcons.forEach(icon => {
-            icon.addEventListener("click", () => {
-                month = icon.id === "calendar-prev" ? month - 1 : month + 1;
-                if (month < 0 || month > 11) {
-                    date = new Date(year, month, new Date().getDate());
-                    year = date.getFullYear();
-                    month = date.getMonth();
-                } else {
-                    date = new Date();
-                }
-                generateCalendar();
-            });
+            }
         });
-        let selectedGlobalEvent = null;
 
-        function selectGlobalEvent(name, date, time, element) {
-            selectedGlobalEvent = { name, date, time };
-            selectedDate=date;
-            const selectedItems = document.querySelectorAll('.event-item');
-            selectedItems.forEach(item => item.style.backgroundColor = 'transparent');
-            element.style.backgroundColor = 'purple';
+        // Your existing background logic (I'll keep the variable names intact)
+        if(month===0){
+            document.getElementById("wholeCalendar").style.backgroundImage="url('https://images.pexels.com/photos/530303/pexels-photo-530303.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2')";
         }
+        else if(month===1){
+            // NOTE: The style property was set incorrectly in the original code. Fixed here.
+            document.getElementById("wholeCalendar").style.backgroundImage="url('https://images.pexels.com/photos/10314132/pexels-photo-10314132.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2')";
+        }else if(month===2){
+            document.getElementById("wholeCalendar").style.backgroundImage="url('https://images.pexels.com/photos/813872/pexels-photo-813872.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2')";
+        }else if(month===3){
+            document.getElementById("wholeCalendar").style.backgroundImage="url('https://images.pexels.com/photos/443420/pexels-photo-443420.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2')";
+        }else if(month===4){
+            document.getElementById("wholeCalendar").style.backgroundImage="url('https://images.pexels.com/photos/2876645/pexels-photo-2876645.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2')";
+        }else if(month===5){
+            document.getElementById("wholeCalendar").style.backgroundImage="url('https://images.pexels.com/photos/33044/sunflower-sun-summer-yellow.jpg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2')";
+        }else if(month===6){
+            document.getElementById("wholeCalendar").style.backgroundImage="url('https://images.pexels.com/photos/450038/pexels-photo-450038.jpeg')";
+        }else if(month===7){
+            document.getElementById("wholeCalendar").style.backgroundImage="url('https://images.pexels.com/photos/1032650/pexels-photo-1032650.jpeg')";
+        }else if(month===8){
+            document.getElementById("wholeCalendar").style.backgroundImage="url('https://images.pexels.com/photos/67566/palm-tree-palm-ocean-summer-67566.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2')";
+        }else if(month===9){
+            document.getElementById("wholeCalendar").style.backgroundImage="url('https://images.pexels.com/photos/33109/fall-autumn-red-season.jpg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2')";
+        }else if(month===10){
+            document.getElementById("wholeCalendar").style.backgroundImage="url('https://images.pexels.com/photos/640809/pexels-photo-640809.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2')";
+        }else if(month===11){
+            document.getElementById("wholeCalendar").style.backgroundImage="url('https://images.pexels.com/photos/572897/pexels-photo-572897.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2')";
+        }
+    }
 
-        function confirmEvent() {
-            if (!selectedGlobalEvent) {
-                alert("Please select a global event to confirm.");
-                return;
-            }
+    generateCalendar();
 
-            const events = loadEvents();
-            const { name, date, time } = selectedGlobalEvent;
-            const eventExists = events.some(event => event.name === name && event.date === date && event.time === time);
-
-            if (eventExists) {
-                alert("This global event has already been added for the selected date.");
+    prenexIcons.forEach(icon => {
+        icon.addEventListener("click", () => {
+            month = icon.id === "calendar-prev" ? month - 1 : month + 1;
+            if (month < 0 || month > 11) {
+                date = new Date(year, month, new Date().getDate());
+                year = date.getFullYear();
+                month = date.getMonth();
             } else {
-                events.push({ name, date, time });
-                localStorage.setItem(`${selectedDate}my`, JSON.stringify(events));
-                alert(`${name} has been added to your personal events on ${selectedDate}.`);
-                selectedGlobalEvent = null;
-                window.open.document.location.loadEventList();
+                date = new Date(year, month, date.getDate());
             }
-        }
-        function loadEvents() {
-            let events = localStorage.getItem(`${selectedDate}my`);
-            return events ? JSON.parse(events) : [];
-        }
-        function openTab(evt, tabName) {
-            const tabContents = document.querySelectorAll('.tab-content');
-            const tabs = document.querySelectorAll('.tab');
-
-            tabContents.forEach(tab => tab.classList.remove('active'));
-
-
-            tabs.forEach(tab => tab.classList.remove('active'));
-
-
-            document.getElementById(tabName).classList.add('active');
-            evt.currentTarget.classList.add('active');
-        }
-    </script>
+            generateCalendar();
+        });
+    });
+</script>
 </body>
 </html>

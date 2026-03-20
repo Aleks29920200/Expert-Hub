@@ -1,9 +1,7 @@
-// src/app/models/user.model.ts
 import { Review } from './review.model';
 import { Appointment } from './appointment.model';
 import { Role } from './role.model';
 import { Skill } from './skill.model';
-import { FileEntity } from './file-entity.model';
 import { UserStatus } from './enums.model';
 
 export interface User {
@@ -13,18 +11,16 @@ export interface User {
   firstName: string;
   lastName: string;
   address: string;
-  picture: string; // Simple URL string if used
+  picture: string;
   bio?: string;
 
-  // Relationships
   review: Review[];
   appointments: Appointment[];
   activity: UserStatus;
   role: Role[];
 
-  // In Java this was named 'photoUrl' but typed as 'FileEntity'
-  photoUrl: FileEntity;
+  // ПРОМЕНЕНО: Вече очакваме стринг (Base64 или URL), а не обект FileEntity
+  photoUrl: string;
 
-  blockedUsers: User[];
-  createdBy: Skill[];
+  // ИЗТРИТИ са blockedUsers и createdBy
 }

@@ -25,8 +25,11 @@ export class SkillListComponent implements OnInit {
   constructor(private skillService: SkillService) {}
 
   ngOnInit() {
-    // You might need to add a getAllSkills() method to SkillService
-    // mapped to your repo.findAll() in the backend
+
+    this.skillService.getAllSkills().subscribe({
+      next: (data) => this.skills = data,
+      error: (err) => console.error('Failed to load skills', err)
+    });
   }
 
   deleteSkill(id: number | undefined) {

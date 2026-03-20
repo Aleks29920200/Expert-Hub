@@ -2,34 +2,61 @@
 <html lang="en" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>SkillSharing</title>
-  <link rel="stylesheet" href="/css/reset-css.css"/>
-  <link rel="stylesheet" href="/css/bootstrap.min.css"/>
-  <link rel="stylesheet" type="text/css" href="/css/main.css"/>
-  <script src="/js/jquery-3.5.1.slim.min.js"></script>
-  <script src="/js/bootstrap.min.js"></script>
-  <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Google Fonts - Poppins -->
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Poppins', sans-serif;
+      background-color: #f3f4f6;
+    }
+  </style>
 </head>
-<body>
-<div th:action="@{/admin/home}" sec:authorize="isAuthenticated()">
-<nav class="navbar navbar-expand-lg fixed-top">
-  <div class="collapse navbar-collapse">
-    <ul class="navbar-nav mr-auto col-12 justify-content-between ">
-      <li class="nav-link">
-        <form th:action="@{/logout}" method="post" sec:authorize="isAuthenticated()">
-          <button type="submit"  style="background-color: #117a8b">
+<body class="bg-gray-100">
+
+<div class="min-h-screen flex flex-col" sec:authorize="isAuthenticated()">
+  <nav class="bg-white shadow-lg p-4">
+    <div class="container mx-auto flex justify-between items-center">
+      <a th:href="@{/home}" class="text-2xl font-bold text-gray-800">SkillSharing Admin</a>
+      <div class="flex items-center space-x-4">
+        <a th:href="@{/admin/add-skill}" class="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2 px-4 rounded-lg transition-colors">
+          Add Skill
+        </a>
+        <a th:href="@{/admin/remove-skill}" class="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2 px-4 rounded-lg transition-colors">
+          Remove Skill
+        </a>
+        <a th:href="@{/admin/all-users}" class="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2 px-4 rounded-lg transition-colors">
+          All Users
+        </a>
+        <form th:action="@{/logout}" method="post">
+          <button type="submit" class="bg-red-600 hover:bg-red-700 text-white font-semibold py-2 px-4 rounded-lg transition-colors">
             Logout
           </button>
         </form>
-      </li>
-      <li class="nav-link">
-        <button type="button" onclick="window.location.href='/admin/all-users'">
-          All users
-        </button>
-      </li>
-    </ul>
-  </div>
-</nav>
+      </div>
+    </div>
+  </nav>
+
+  <main class="flex-grow flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl shadow-xl p-8 w-full max-w-2xl text-center">
+      <h1 class="text-4xl font-bold text-gray-800 mb-4">Welcome to the Admin Panel</h1>
+      <p class="text-gray-600 text-lg mb-8">
+        Manage users, skills, and other application settings from this central dashboard.
+      </p>
+      <div class="flex justify-center space-x-4">
+        <a th:href="@{/admin/remove-skill}" class="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 px-8 rounded-lg shadow-md transition-colors transform hover:scale-105">
+         Skills
+        </a>
+        <a th:href="@{/admin/manage-users}" class="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 px-8 rounded-lg shadow-md transition-colors transform hover:scale-105">
+          Users
+        </a>
+      </div>
+    </div>
+  </main>
 </div>
+
 </body>
 </html>

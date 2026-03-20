@@ -3,12 +3,14 @@ import { Skill } from './skill.model';
 
 export interface Review {
   id: number;
-  authorName: string;
+  // ПРОМЕНЕНО: Трябва да съвпада с ReviewDTO.java в Spring Boot
+  authorUsername: string;
   content: string;
-  created: string; // or Date
+  created?: string;
+  replies?: any[];
 }
 
 export interface UserProfile extends User {
-  skill?: Skill;   // The expert's skill details
+  skill?: Skill;
   reviews?: Review[];
 }

@@ -9,7 +9,9 @@ import {Skill} from './skill.model';
 
 export interface AddAppointmentRequest {
   name: string;
-  dateOfAppointment: Date; // ISO Date string
+  dateOfAppointment: Date;
+  requesterUsername: string;
+  skillId: number;// ISO Date string
   // Add other fields from your Java AddAppointment DTO here
 }
 
@@ -38,6 +40,7 @@ export interface ReviewDto {
   revieweeId: number; // or revieweeUsername depending on controller
   content: string;
   rating: number;
+  replies: any[];
 }
 
 export interface MessageDto {
@@ -45,7 +48,8 @@ export interface MessageDto {
   sender: string; // username
   receiver: string; // username
   content: string;
-  timestamp?: string; // ISO string
+  timestamp?: string;
+  messageType?: string;// ISO string
 }
 
 export interface UserRegistrationDto {
@@ -75,6 +79,8 @@ export interface UserDTO {
     fileName: string;
 
   };
+  hasPaid?: boolean; // <-- ДОБАВЯМЕ ТОВА ПОЛЕ
+  defaultOfferId?: number;
 
 
   createdBy: Skill[];

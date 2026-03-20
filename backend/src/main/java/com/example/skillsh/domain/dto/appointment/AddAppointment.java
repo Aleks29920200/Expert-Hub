@@ -13,5 +13,8 @@ import java.time.LocalDateTime;
 public class AddAppointment {
     private String name;
     private LocalDateTime dateOfAppointment;
+    private String requesterUsername;
+    private String providerUsername;// Потребителското име на клиента
+    private Long skillId;
 }
 

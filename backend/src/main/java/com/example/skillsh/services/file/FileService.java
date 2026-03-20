@@ -18,7 +18,10 @@ public class FileService {
 
         this.fileRepository = fileRepository;
     }
-
+    public FileEntity getCurrentAddedImage() {
+        return this.fileRepository.findTopByOrderByIdDesc()
+                .orElseThrow(() -> new RuntimeException("Няма намерени файлове"));
+    }
     public int upload(FileUploadModel model) throws IOException {
         MultipartFile img = model.getImg();
 
@@ -31,9 +34,7 @@ public class FileService {
         return fileRepository.saveAndFlush(newFile).getId();
     }
 
-    public FileEntity getCurrentAddedImage() {
-        return this.fileRepository.findAll().get(this.fileRepository.findAll().size() - 1);
-    }
+
 
 
     public FileDownloadModel download(int fileId) {
