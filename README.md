@@ -1,30 +1,27 @@
 # 🚀 Expert Hub (Professional Mentorship & Expert Hub)
 
-![Java](https://img.shields.io/badge/Java-17+-orange)
-![Spring Boot](https://img.shields.io/badge/Spring_Boot-3.x-brightgreen)
-![Angular](https://img.shields.io/badge/Angular-Frontend-red)
-![Status](https://img.shields.io/badge/Status-In_Development-blue)
-
 **Expert Hub** is a purpose-driven, full-stack platform designed to accelerate professional growth. It bridges the gap between aspiring professionals and seasoned industry experts, providing a dedicated space for paid mentorship, secure networking, and authentic skill development.
 
 ## 📖 Table of Contents
-1. [Project Overview](#project-overview)
-2. [User Journey & Flow](#user-journey--flow)
-3. [Key Features](#key-features)
-4. [System Architecture](#system-architecture)
-5. [Tech Stack](#tech-stack)
-6. [Challenges & Solutions](#challenges--solutions)
-7. [Installation & Setup](#installation--setup)
+
+1. [Project Overview](#-project-overview)
+2. [User Journey & Flow](#️-user-journey--flow)
+3. [Key Features](#-key-features)
+4. [System Architecture](#-system-architecture)
+5. [Tech Stack](#-tech-stack)
+6. [Installation & Setup](#️-installation--setup)
 
 ---
 
 ## 🔎 Project Overview
+
 The core mission of **Expert Hub** is to empower individuals to "level up" in their respective fields. Users can utilize advanced search filters to discover verified experts, securely pay for mentorship sessions, and unlock dedicated chat channels to gain real-world experience. To maintain a transparent and trustworthy community, the platform enforces a strict feedback loop where reviews can only be left after a verified interaction.
 
 The application is powered by a robust **Spring Boot** backend that ensures secure communication, payment status validation, and complex data handling, while the **Angular** frontend delivers a highly responsive SPA experience.
 
-## 🗺️ User Journey & Flow
+---
 
+## 🗺️ User Journey & Flow
 
 1. **Discover:** User searches for an expert using multiple professional criteria.
 2. **Commit:** User pays the expert for a mentorship session or consultation.
@@ -50,6 +47,7 @@ The application is powered by a robust **Spring Boot** backend that ensures secu
 ---
 
 ## 🏗️ System Architecture
+
 The application follows a standard RESTful client-server architecture. The Angular frontend communicates with the Spring Boot backend via HTTP Observables. Complex relational data is safely managed using Data Transfer Objects (DTOs) before being serialized into JSON payloads.
 
 ---
@@ -74,26 +72,7 @@ The application follows a standard RESTful client-server architecture. The Angul
 * **Maven**
 * A running instance of your preferred SQL Database
 
-### 1. Backend Setup
+### 1. Clone the Repository
 ```bash
-# Clone the repository
-git clone [https://github.com/yourusername/skillsh.git](https://github.com/yourusername/skillsh.git)
-
-# Navigate to backend directory
-cd skillsh/backend
-```
-###2.Frontend Setup
-# Navigate to frontend directory
-cd ../frontend
-
-# Install dependencies
-npm install
-
-# Start the Angular server
-ng serve
-
-Soon it will be finished.
-
-# Configure your application.properties with your DB credentials
-# Run the application
-mvn spring-boot:run
+git clone [https://github.com/Aleks29920200/Expert-Hub.git](https://github.com/Aleks29920200/Expert-Hub.git)
+cd Expert-Hub
