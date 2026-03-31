@@ -27,15 +27,22 @@ export class AuthService {
   }
 
   // --- LOGIN ---
+  // --- LOGIN ---
   login(credentials: any): Observable<any> {
     return this.http.post(`${this.apiUrl}/login`, credentials).pipe(
       tap((response: any) => {
         if (isPlatformBrowser(this.platformId)) {
           localStorage.setItem('token', response.token);
           localStorage.setItem('username', response.username);
-          localStorage.setItem('role', response.role);
+
+          // 🛑 ТОВА Е ЛИПСВАЩОТО ЗВЕНО! Трябва да запазим и ролята:
+          // Зависи как точно ти я връща бекендът. Обикновено е response.role или response.roles[0]
+          if (response.role) {
+            localStorage.setItem('role', response.role);
+          } else if (response.roles && response.roles.length > 0) {
+            localStorage.setItem('role', response.roles[0]);
+          }
         }
-        // ПОПРАВКА 1: Подаваме само името (текст), а не целия обект!
         this.currentUserSubject.next(response.username);
       })
     );

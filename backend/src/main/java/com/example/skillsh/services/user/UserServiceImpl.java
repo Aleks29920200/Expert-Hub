@@ -291,19 +291,40 @@ public class UserServiceImpl implements UserService {
     // 2. CREATE - Записване на нов потребител
     public UserDTO saveUser(UserDTO userDTO) {
         User user = new User();
+
+        // 1. Старите полета
         user.setUsername(userDTO.getUsername());
         user.setEmail(userDTO.getEmail());
 
-        // ВАЖНО: Криптираме паролата (ако е нов потребител, сложи дефолтна или от DTO)
-        user.setPassword(passwordEncoder.encode("123456"));
+        // 2. НОВИТЕ ПОЛЕТА (които добавихме във фронтенда)
+        user.setFirstName(userDTO.getFirstName());
+        user.setLastName(userDTO.getLastName());
+        user.setAddress(userDTO.getAddress());
+        user.setPicture(userDTO.getPicture());
 
-        // Задаване на роля по подразбиране (напр. ROLE_USER)
-        user.setRole((Set<Role>) roleRepo.getRoleByName("USER"));
+        // 3. Обработка на паролата (вече идва от Angular формата)
+        if (userDTO.getPassword() != null && !userDTO.getPassword().isEmpty()) {
+            user.setPassword(passwordEncoder.encode(userDTO.getPassword()));
+        } else {
+            // Защитна мрежа: ако някой хакер прати заявка без парола
+            user.setPassword(passwordEncoder.encode("123456"));
+        }
 
+        // 4. Задаване на роля (с поправения Set.of код отпреди малко)
+        List<Role> userRoles = roleRepo.getRoleByName("USER");
+
+// Конвертираш ArrayList-а в HashSet
+        Set<Role> roles = new HashSet<>(userRoles);
+
+// Задаваш сета на потребителя
+        user.setRole(roles);
+
+
+        // 5. Записваме в базата
         User savedUser = userRepo.save(user);
-        return mapToDTO(savedUser);
-    }
 
+        return mapToDTO(savedUser); // Увери се, че и mapToDTO прехвърля новите полета!
+    }
     // 3. UPDATE - Редактиране на съществуващ потребител
     @Transactional
     public UserDTO updateUser2(Long id, UserDTO userDTO) {
@@ -326,11 +347,13 @@ public class UserServiceImpl implements UserService {
     // Помощен метод за превръщане на Entity в DTO
     private UserDTO mapToDTO(User user) {
         UserDTO dto = new UserDTO();
-        dto.setUserId(user.getId());
+        dto.setId(user.getId());
         dto.setUsername(user.getUsername());
         dto.setEmail(user.getEmail());
-        // Ако имаш роля в DTO-то:
-        // dto.setRoleName(user.getRole().getName());
+        if (user.getRole() != null) {
+            Set<Role> roleNames = user.getRole();
+            dto.setRoles((List<Role>) roleNames);
+        }
         return dto;
     }
     @Override

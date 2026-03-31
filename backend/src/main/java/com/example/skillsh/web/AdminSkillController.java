@@ -3,7 +3,10 @@ package com.example.skillsh.web;
 
 
 
+import com.example.skillsh.domain.dto.appointment.AddAppointment;
 import com.example.skillsh.domain.dto.skill.SkillDto;
+import com.example.skillsh.domain.entity.Appointment;
+import com.example.skillsh.services.appointment.AdminAppointmentService;
 import com.example.skillsh.services.skill.SkillService;
 import com.example.skillsh.services.skill.SkillServiceImpl;
 import org.springframework.http.ResponseEntity;
@@ -42,3 +45,5 @@ public class AdminSkillController {
         return ResponseEntity.noContent().build();
     }
 }
+
+

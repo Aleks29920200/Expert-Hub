@@ -35,16 +35,21 @@ export const adminGuard: CanActivateFn = (route, state) => {
   const router = inject(Router);
   const platformId = inject(PLATFORM_ID);
 
-  // 1. SSR Check
+  // 1. Проверка за Server-Side Rendering (SSR)
   if (!isPlatformBrowser(platformId)) {
     return router.createUrlTree(['/login']);
   }
 
-  // 2. Browser Check
-  if (authService.isLoggedIn() && authService.isAdmin()) {
-    return true;
-  } else {
-    // Logged in but not Admin? Redirect to home
-    return router.createUrlTree(['/home']);
+  // 2. Ако потребителят ИЗОБЩО не е логнат -> пращаме го да се логне
+  if (!authService.isLoggedIn()) {
+    return router.createUrlTree(['/login']);
   }
+
+  // 3. Ако е логнат, но НЕ Е админ -> пращаме го в началната страница (или страница "Нямате достъп")
+  if (!authService.isAdmin()) {
+    return router.createUrlTree(['/admin']);
+  }
+
+  // 4. Ако е логнат И е админ -> пускаме го!
+  return true;
 };

@@ -1,6 +1,7 @@
 package com.example.skillsh.domain.entity;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -21,11 +22,11 @@ public class Review {
     @Column(name="review_id")
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-    @ManyToOne // ПРОМЕНЕНО
+    @ManyToOne
     @JoinColumn(name = "reviewing_user_id")
     private User reviewingUser;
 
-    @ManyToOne // ПРОМЕНЕНО
+    @ManyToOne
     @JoinColumn(name = "reviewed_user_id")
     private User reviewedUser;
     @Column(columnDefinition = "TEXT")

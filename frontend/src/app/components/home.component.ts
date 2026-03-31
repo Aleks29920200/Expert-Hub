@@ -5,17 +5,17 @@ import { FormsModule } from '@angular/forms';
 import { DomSanitizer, SafeUrl } from '@angular/platform-browser';
 import { SearchService } from '../services/search.service';
 import { UserDTO } from '../models/dtos.model';
-import {PaymentService} from '../services/payment.service';
+import { PaymentService } from '../services/payment.service';
+import { AuthService } from '../services/auth.service'; // НОВО: Импорт на AuthService
 
 @Component({
   selector: 'app-home',
   standalone: true,
   imports: [CommonModule, RouterLink, FormsModule],
   template: `
-    
     <div class="min-h-screen bg-gray-50 pb-10">
 
-      <div class="bg-indigo-600 text-white py-16 px-4 text-center shadow-md">
+      <div *ngIf="!isExpertMode" class="bg-indigo-600 text-white py-16 px-4 text-center shadow-md">
         <h1 class="text-4xl font-bold mb-4">Find the Perfect Expert</h1>
         <div class="max-w-xl mx-auto flex gap-2">
           <input type="text" [(ngModel)]="searchQuery" (keyup.enter)="performSearch(searchQuery)"
@@ -62,7 +62,7 @@ import {PaymentService} from '../services/payment.service';
         </div>
       </div>
 
-      <div class="container mx-auto px-4 mt-8">
+      <div *ngIf="!isExpertMode" class="container mx-auto px-4 mt-8">
 
         <div *ngIf="isLoading" class="text-center py-12">
           <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
@@ -128,6 +128,20 @@ import {PaymentService} from '../services/payment.service';
           </div>
         </div>
       </div>
+
+      <div *ngIf="isExpertMode" class="container mx-auto px-4 mt-16 text-center">
+        <div class="bg-white rounded-xl shadow-lg p-10 max-w-2xl mx-auto border border-gray-100">
+          <h2 class="text-4xl font-bold text-gray-800 mb-4">Welcome back, Expert! 🚀</h2>
+          <p class="text-gray-600 mb-8 text-lg">
+            This is your dashboard placeholder. You can navigate to your profile, check your messages, or manage your service orders from the navigation menu.
+          </p>
+          <button [routerLink]="['/profile', authService.getCurrentUsername()]"
+                  class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-8 rounded-lg transition duration-300">
+            Go to My Profile
+          </button>
+        </div>
+      </div>
+
     </div>
   `
 })
@@ -135,27 +149,36 @@ export class HomeComponent implements OnInit {
   searchQuery: string = '';
   users: UserDTO[] = [];
   isLoading: boolean = false;
+  isExpertMode: boolean = false; // НОВО: Флаг за ролята
 
   constructor(
-    private searchService: SearchService,
-    private cdr: ChangeDetectorRef,
-    private sanitizer: DomSanitizer,
-    private router: Router,
-  private paymentService: PaymentService
+      private searchService: SearchService,
+      private cdr: ChangeDetectorRef,
+      private sanitizer: DomSanitizer,
+      private router: Router,
+      private paymentService: PaymentService,
+      public authService: AuthService // НОВО: AuthService (public, за да го ползваме в HTML)
   ) {}
 
   ngOnInit() {
-    this.performSearch(''); // Търсим с празен стринг, за да върне всички!
+    const role = this.authService.getUserRole();
+    console.log('>>> РОЛЯТА ОТ LOCAL STORAGE Е:', role); // 🛑 ДОБАВИ ТОВА
+
+    this.isExpertMode = role === 'EXPERT' || role === 'ROLE_EXPERT';
+    console.log('>>> ЕКСПЕРТ ЛИ Е?', this.isExpertMode); // 🛑 ДОБАВИ И ТОВА
+
+    if (!this.isExpertMode) {
+      this.performSearch('');
+    }
   }
+
   payForAccess(expert: any) {
-    // 1. Взимаме ID-то на текущо логнатия потребител (купувача)
-    let myUserId = 1; // Хардкодната стойност за тест (ако няма никой логнат)
+    let myUserId = 1;
 
     const currentUserStr = localStorage.getItem('currentUser');
     if (currentUserStr) {
       try {
         const currentUserObj = JSON.parse(currentUserStr);
-        // Предполагаме, че обектът в localStorage има поле id
         if (currentUserObj && currentUserObj.id) {
           myUserId = currentUserObj.id;
         }
@@ -164,20 +187,14 @@ export class HomeComponent implements OnInit {
       }
     }
 
-    // 2. Взимаме ID-то на офертата, която ще се плаща
-    // Ако в DTO-то няма defaultOfferId, използваме 1 за тест
     const offerIdToPay = expert.defaultOfferId || 1;
-
     console.log(`Иницииране на плащане: Купувач ID=${myUserId}, Оферта ID=${offerIdToPay}`);
 
-    // 3. Извикваме PaymentService
-    // ВНИМАНИЕ: Увери се, че методът в payment.service.ts приема (userId, offerId)
     this.paymentService.createHostedCheckoutSession(myUserId, offerIdToPay).subscribe({
       next: (response: any) => {
-        // Очакваме бекендът да върне JSON: { "url": "https://checkout.stripe.com/..." }
         if (response && response.url) {
           console.log('Пренасочване към Stripe...');
-          window.location.href = response.url; // Това отваря страницата на Stripe!
+          window.location.href = response.url;
         } else {
           console.error('Бекендът не върна URL за плащане:', response);
           alert('Възникна грешка при създаването на сесия за плащане.');
@@ -190,13 +207,8 @@ export class HomeComponent implements OnInit {
     });
   }
 
-
-
-
-  // ✅ ROBUST NAVIGATION METHOD
   goToChat(userObj: any) {
-    // 1. Prefer Username (since Chat uses usernames anyway)
-    const target = userObj.username;
+    const target = userObj.username || userObj;
 
     if (!target) {
       console.error("User object:", userObj);
@@ -204,7 +216,6 @@ export class HomeComponent implements OnInit {
       return;
     }
 
-    // 2. Navigate to /chat/alex
     this.router.navigate(['/chat', target]);
   }
 
@@ -217,16 +228,17 @@ export class HomeComponent implements OnInit {
       const finalUrl = photoData.startsWith('data:') ? photoData : `data:image/jpeg;base64,${photoData}`;
       return this.sanitizer.bypassSecurityTrustUrl(finalUrl);
     }
-    // Fallback за стария формат
     return 'assets/default-user.png';
   }
 
-  // Съществуващият ти метод за търсене по текст
   performSearch(query: string) {
     this.isLoading = true;
     this.searchService.searchByKeyword(query).subscribe({
       next: (data) => {
-        this.users = data || [];
+        const allUsers = data || [];
+        // ФИЛТЪР: Оставяме САМО тези, които имат роля EXPERT
+        this.users = allUsers.filter(user => this.isUserExpert(user));
+
         this.isLoading = false;
         if (this.cdr) this.cdr.detectChanges();
       },
@@ -237,15 +249,16 @@ export class HomeComponent implements OnInit {
     });
   }
 
-  // НОВ метод за търсене по категория
   performCategorySearch(category: string) {
     this.isLoading = true;
-    // Можеш също да обновиш полето за търсене визуално, ако желаеш:
     this.searchQuery = category;
 
     this.searchService.searchByCategory(category).subscribe({
       next: (data) => {
-        this.users = data || [];
+        const allUsers = data || [];
+        // ФИЛТЪР: Оставяме САМО тези, които имат роля EXPERT
+        this.users = allUsers.filter(user => this.isUserExpert(user));
+
         this.isLoading = false;
         if (this.cdr) this.cdr.detectChanges();
       },
@@ -253,6 +266,36 @@ export class HomeComponent implements OnInit {
         console.error('Грешка при търсене по категория:', err);
         this.isLoading = false;
       }
+    });
+  }
+
+  // НОВ ПОМОЩЕН МЕТОД: Проверява дали даден потребител е експерт
+  private isUserExpert(user: any): boolean {
+    if (!user) return false;
+
+    // Събираме всички възможни варианти на роли в един масив
+    let rawRoles: any[] = [];
+
+    if (Array.isArray(user.roles)) {
+      rawRoles = [...user.roles]; // Ако е масив roles: [...]
+    } else if (Array.isArray(user.role)) {
+      rawRoles = [...user.role];  // Ако е масив role: [...]
+    } else if (typeof user.roles === 'string') {
+      rawRoles.push(user.roles);  // Ако е стринг roles: "ROLE_EXPERT"
+    } else if (typeof user.role === 'string') {
+      rawRoles.push(user.role);   // Ако е стринг role: "ROLE_EXPERT"
+    }
+
+    // Ако не сме намерили никакви роли, потребителят отпада
+    if (rawRoles.length === 0) {
+      console.warn('Потребител без роли:', user.username);
+      return false;
+    }
+
+    // Търсим думата 'EXPERT' (без значение от малки/главни букви и префикси)
+    return rawRoles.some(r => {
+      const roleStr = typeof r === 'string' ? r : (r.name || r.authority || r.roleName || '');
+      return roleStr.toUpperCase().includes('EXPERT');
     });
   }
 

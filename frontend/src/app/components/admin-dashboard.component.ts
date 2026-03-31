@@ -1,21 +1,31 @@
 import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import {AdminPanelComponent} from './admin-home.component';
-import {AdminSkillsComponent} from './admin-skill.component';
 
-// ВАЖНО: Увери се, че пътищата до твоите компоненти са правилни!
+// Импорти на всички CRUD компоненти
+import { AdminPanelComponent } from './admin-home.component';
+import { AdminSkillsComponent } from './admin-skill.component';
+import { AdminAppointmentsComponent } from './admin-appointments.component';
+import { AdminReviewsComponent } from './admin-reviews.component';
+import {AdminOffersComponent} from './admin-offer.component';
 
+type TabType = 'users' | 'skills' | 'appointments' | 'reviews' | 'offers';
 
 @Component({
   selector: 'app-admin-dashboard',
   standalone: true,
-  // Тук казваме на Angular, че ще ползваме тези два компонента вътре в HTML-а
-  imports: [CommonModule, AdminPanelComponent, AdminSkillsComponent],
+  imports: [
+    CommonModule,
+    AdminPanelComponent,
+    AdminSkillsComponent,
+    AdminAppointmentsComponent,
+    AdminReviewsComponent,
+    AdminOffersComponent
+  ],
   template: `
-    <div class="container mt-5">
+    <div class="container-fluid mt-4 px-4">
       <div class="d-flex justify-content-between align-items-center mb-4">
         <h2>⚙️ Главен Административен Панел</h2>
-        <span class="badge bg-primary fs-6">Режим: {{ activeTab === 'users' ? 'Потребители' : 'Умения' }}</span>
+        <span class="badge bg-primary fs-6">Режим: {{ getTabName() }}</span>
       </div>
 
       <ul class="nav nav-pills nav-fill mb-4 p-2 bg-light rounded shadow-sm border">
@@ -24,7 +34,7 @@ import {AdminSkillsComponent} from './admin-skill.component';
             class="nav-link py-3"
             [class.active]="activeTab === 'users'"
             (click)="switchTab('users')">
-            👥 Управление на Потребители
+            👥 Потребители
           </button>
         </li>
         <li class="nav-item">
@@ -32,17 +42,41 @@ import {AdminSkillsComponent} from './admin-skill.component';
             class="nav-link py-3"
             [class.active]="activeTab === 'skills'"
             (click)="switchTab('skills')">
-            🎯 Управление на Умения
+            🎯 Умения
+          </button>
+        </li>
+        <li class="nav-item">
+          <button
+            class="nav-link py-3"
+            [class.active]="activeTab === 'appointments'"
+            (click)="switchTab('appointments')">
+            📅 Срещи
+          </button>
+        </li>
+        <li class="nav-item">
+          <button
+            class="nav-link py-3"
+            [class.active]="activeTab === 'offers'"
+            (click)="switchTab('offers')">
+            💼 Оферти
+          </button>
+        </li>
+        <li class="nav-item">
+          <button
+            class="nav-link py-3"
+            [class.active]="activeTab === 'reviews'"
+            (click)="switchTab('reviews')">
+            ⭐ Ревюта
           </button>
         </li>
       </ul>
 
       <div class="admin-content-wrapper">
-
         <app-admin-panel *ngIf="activeTab === 'users'"></app-admin-panel>
-
         <app-admin-skills *ngIf="activeTab === 'skills'"></app-admin-skills>
-
+        <app-admin-appointments *ngIf="activeTab === 'appointments'"></app-admin-appointments>
+        <app-admin-offers *ngIf="activeTab === 'offers'"></app-admin-offers>
+        <app-admin-reviews *ngIf="activeTab === 'reviews'"></app-admin-reviews>
       </div>
     </div>
   `,
@@ -51,10 +85,11 @@ import {AdminSkillsComponent} from './admin-skill.component';
     .nav-link {
       cursor: pointer;
       font-weight: 600;
-      font-size: 1.1rem;
+      font-size: 1.05rem;
       border-radius: 8px;
       transition: all 0.3s ease;
       color: #495057;
+      white-space: nowrap; /* Предпазва текста от счупване на 2 реда при по-малки екрани */
     }
     .nav-link:hover:not(.active) { background-color: #e9ecef; }
     .nav-link.active {
@@ -72,11 +107,24 @@ import {AdminSkillsComponent} from './admin-skill.component';
   `]
 })
 export class AdminDashboardComponent {
+
   // Променлива, която пази информация кой таб е отворен в момента
-  activeTab: 'users' | 'skills' = 'users';
+  activeTab: TabType = 'users';
 
   // Метод за смяна на таба
-  switchTab(tab: 'users' | 'skills'): void {
+  switchTab(tab: TabType): void {
     this.activeTab = tab;
+  }
+
+  // Помощен метод за красиво показване на името на таба в баджа горе вдясно
+  getTabName(): string {
+    const names = {
+      'users': 'Потребители',
+      'skills': 'Умения',
+      'appointments': 'Срещи',
+      'offers': 'Оферти',
+      'reviews': 'Ревюта'
+    };
+    return names[this.activeTab] || 'Неизвестен';
   }
 }

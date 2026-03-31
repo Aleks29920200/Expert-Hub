@@ -7,7 +7,7 @@ import {UserService} from '../services/user.service';
 @Component({
   selector: 'app-user-details',
   standalone: true,
-  imports: [CommonModule, RouterLink, NgOptimizedImage],
+  imports: [CommonModule, RouterLink],
   template: `
     <div class="flex items-center justify-center min-h-screen bg-gray-100 p-4" *ngIf="user">
       <div class="bg-white rounded-2xl shadow-xl p-8 w-full max-w-lg">

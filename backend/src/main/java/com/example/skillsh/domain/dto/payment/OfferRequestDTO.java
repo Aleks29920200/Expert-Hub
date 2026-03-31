@@ -2,15 +2,14 @@ package com.example.skillsh.domain.dto.payment;
 
 
 import com.example.skillsh.domain.entity.enums.OfferStatus;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.Setter;
+import lombok.*;
 
 import java.time.LocalDateTime;
 import java.util.List;
 @Getter
 @Setter
-@Builder
+@NoArgsConstructor
+@AllArgsConstructor
 public class OfferRequestDTO {
     private String title;
     private String description;
